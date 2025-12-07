@@ -168,7 +168,7 @@ const UserDashboard = () => {
   // ==================== FETCH FUNCTIONS ====================
   const fetchHospitals = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/hospital/approved");
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/approved");
       setHospitals(res.data);
     } catch (error) {
       console.error("Error fetching hospitals:", error);
@@ -179,7 +179,7 @@ const UserDashboard = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `http://localhost:8000/api/hospital/getdoctorsparams/${hospitalId}`
+        `https://careflow-lsf5.onrender.com/api/hospital/getdoctorsparams/${hospitalId}`
       );
       setHospitalDoctors(res.data);
       setSelectedHospital(hospitals.find((h) => h._id === hospitalId));
@@ -194,7 +194,7 @@ const UserDashboard = () => {
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/user/getUser", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/user/getUser", config);
       setProfile(res.data);
       setProfileForm({
         name: res.data.name || "",
@@ -212,7 +212,7 @@ const UserDashboard = () => {
 
   const fetchAppointments = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/appointment/user", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/appointment/user", config);
       setAppointments(res.data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -221,7 +221,7 @@ const UserDashboard = () => {
 
   const fetchReferrals = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/refer/user", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/refer/user", config);
       setReferrals(res.data);
     } catch (error) {
       console.error("Error fetching referrals:", error);
@@ -233,7 +233,7 @@ const UserDashboard = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.put("http://localhost:8000/api/user/profile", profileForm, config);
+      const res = await axios.put("https://careflow-lsf5.onrender.com/api/user/profile", profileForm, config);
       setProfile(res.data);
       localStorage.setItem("Userinfo", JSON.stringify({ ...userInfo, user: res.data }));
       alert("Profile updated successfully!");
@@ -255,7 +255,7 @@ const UserDashboard = () => {
     setLoading(true);
     try {
       await axios.put(
-        "http://localhost:8000/api/user/resetpassword",
+        "https://careflow-lsf5.onrender.com/api/user/resetpassword",
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
@@ -290,7 +290,7 @@ const UserDashboard = () => {
     }
     try {
       await axios.patch(
-        `http://localhost:8000/api/appointment/cancel/${appointmentId}`,
+        `https://careflow-lsf5.onrender.com/api/appointment/cancel/${appointmentId}`,
         {},
         config
       );
@@ -348,7 +348,7 @@ const UserDashboard = () => {
       };
 
       await axios.post(
-        `http://localhost:8000/api/bill/payment/${selectedBill._id}`,
+        `https://careflow-lsf5.onrender.com/api/bill/payment/${selectedBill._id}`,
         paymentData,
         config
       );

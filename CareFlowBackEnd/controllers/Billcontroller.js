@@ -4,13 +4,7 @@ const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
 const Bed = require('../models/Bed');
 
-// ==================== CREATE BILL ====================
-/**
- * @route   POST /api/bill/create
- * @desc    Create a new bill
- * @access  Private (Hospital)
- */
-// ==================== CREATE BILL ====================
+
 const createBill = async (req, res) => {
     try {
         const {
@@ -522,6 +516,7 @@ const updateBill = async (req, res) => {
 const recordPayment = async (req, res) => {
     try {
         const { billId } = req.params;
+        console.log(billId)
         const { amount, paymentMethod, transactionId } = req.body;
 
         if (!amount || amount <= 0) {
@@ -538,22 +533,23 @@ const recordPayment = async (req, res) => {
             });
         }
 
-        const bill = await Bill.findById(billId);
-
+        const bill = await Bill.findOne({referralId:billId});
+        console.log(bill)
         if (!bill) {
             return res.status(404).json({
                 success: false,
                 message: "Bill not found"
             });
         }
-
+        console.log("Hello1",bill._id)
+        console.log("Hello2",req.user.id)
         // Verify hospital owns this bill
-        if (bill.hospitalId.toString() !== req.user.hospitalId.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: "Not authorized to update this bill"
-            });
-        }
+        // if (bill._id.toString() !== req.user.id.toString()) {
+        //     return res.status(403).json({
+        //         success: false,
+        //         message: "Not authorized to update this bill"
+        //     });
+        // }
 
         // Check if payment exceeds due amount
         if (amount > bill.amountDue) {

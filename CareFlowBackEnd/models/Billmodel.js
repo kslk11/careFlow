@@ -47,7 +47,7 @@ const billSchema = new mongoose.Schema({
     // Related Records
     referralId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Referral',
+        ref: 'Refer',
         default: null
     },
 
@@ -256,32 +256,24 @@ billSchema.virtual('isOverdue').get(function() {
 });
 
 // Pre-save hook to calculate shares (90% Hospital, 10% Admin)
-billSchema.pre('save', function(next) {
-    // Calculate subtotal from items if items exist
+billSchema.pre('save', async function() {
     if (this.items && this.items.length > 0) {
         this.subtotal = this.items.reduce((sum, item) => sum + item.totalPrice, 0);
     }
 
-    // Calculate total amount
     this.totalAmount = this.subtotal + this.tax - this.discount;
-
-    // Calculate 90/10 split
     this.hospitalShare = this.totalAmount * 0.9;
     this.adminShare = this.totalAmount * 0.1;
+    this.amountDue = this.totalAmount - (this.amountPaid || 0);
 
-    // Calculate amount due
-    this.amountDue = this.totalAmount - this.amountPaid;
-
-    // Update payment status based on amount paid
-    if (this.amountPaid >= this.totalAmount) {
+    if ((this.amountPaid || 0) >= this.totalAmount) {
         this.paymentStatus = 'paid';
         this.amountDue = 0;
-    } else if (this.amountPaid > 0) {
+    } else if ((this.amountPaid || 0) > 0) {
         this.paymentStatus = 'partial';
     }
-
-    next();
 });
+
 
 // Static method to generate unique bill number
 billSchema.statics.generateBillNumber = async function() {
