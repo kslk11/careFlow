@@ -1,0 +1,1713 @@
+// UserDashboard_Part1.jsx - Imports, State Management, and Helper Functions
+
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import BookAppointment from "./BookAppointment";
+
+// ==================== HELPER FUNCTIONS ====================
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
+const formatTime = (timeString) => {
+  if (!timeString) return 'N/A';
+  return timeString;
+};
+
+const calculateTotalBill = (referral) => {
+  if (referral.finalPrice) {
+    return referral.finalPrice;
+  }
+  let total = referral.estimatedPrice || 0;
+  return total;
+};
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'accepted':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'rejected':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'completed':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'cancelled':
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+};
+
+const getPaymentStatusColor = (status) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-red-100 text-red-800';
+    case 'partial':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'paid':
+    case 'completed':
+      return 'bg-green-100 text-green-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const UserDashboard = () => {
+  const navigate = useNavigate();
+
+  // ==================== STATE MANAGEMENT ====================
+  // Core States
+  const [hospitals, setHospitals] = useState([]);
+  const [selectedHospital, setSelectedHospital] = useState(null);
+  const [hospitalDoctors, setHospitalDoctors] = useState([]);
+  const [profile, setProfile] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [referrals, setReferrals] = useState([]);
+  const [activePage, setActivePage] = useState("hospitals");
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("all");
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Dark Mode State
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Profile States
+  const [editMode, setEditMode] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    dateOfBirth: "",
+    gender: "",
+    bloodGroup: "",
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // Appointment States
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+
+  // Referral States
+  const [selectedReferral, setSelectedReferral] = useState(null);
+  const [showReferralDetailsModal, setShowReferralDetailsModal] = useState(false);
+
+  // Bill & Payment States
+  const [showBillModal, setShowBillModal] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentType, setPaymentType] = useState("full"); // full, partial
+  const [emiOption, setEmiOption] = useState(null); // 2 or 3
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  // Auth
+  const token = localStorage.getItem("UserToken");
+  const userInfo = JSON.parse(localStorage.getItem("Userinfo"));
+
+  const config = {
+    headers: { Authorization: `Bearer ${token}` },
+  };
+
+  const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
+  // ==================== DARK MODE SETUP ====================
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("userTheme");
+    if (savedTheme === "dark") setDarkMode(true);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("userTheme", darkMode ? "dark" : "light");
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  // Theme Classes
+  const bgPrimary = darkMode ? "bg-gray-900" : "bg-gray-50";
+  const bgSecondary = darkMode ? "bg-gray-800" : "bg-white";
+  const bgTertiary = darkMode ? "bg-gray-700" : "bg-gray-100";
+  const textPrimary = darkMode ? "text-gray-100" : "text-gray-800";
+  const textSecondary = darkMode ? "text-gray-400" : "text-gray-600";
+  const borderColor = darkMode ? "border-gray-700" : "border-gray-200";
+  const hoverBg = darkMode ? "hover:bg-gray-700" : "hover:bg-gray-50";
+
+  // ==================== EFFECTS ====================
+  // Clock Update
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Initial Data Fetch
+  useEffect(() => {
+    fetchHospitals();
+    fetchProfile();
+    fetchAppointments();
+    fetchReferrals();
+  }, []);
+
+  // ==================== FETCH FUNCTIONS ====================
+  const fetchHospitals = async () => {
+    try {
+      const res = await axios.get("http://localhost:8000/api/hospital/approved");
+      setHospitals(res.data);
+    } catch (error) {
+      console.error("Error fetching hospitals:", error);
+    }
+  };
+
+  const fetchHospitalDoctors = async (hospitalId) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/api/hospital/getdoctorsparams/${hospitalId}`
+      );
+      setHospitalDoctors(res.data);
+      setSelectedHospital(hospitals.find((h) => h._id === hospitalId));
+      setActivePage("doctors");
+    } catch (error) {
+      console.error("Error fetching hospital doctors:", error);
+      alert("Failed to fetch doctors");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const res = await axios.get("http://localhost:8000/api/user/getUser", config);
+      setProfile(res.data);
+      setProfileForm({
+        name: res.data.name || "",
+        email: res.data.email || "",
+        phone: res.data.phone || "",
+        address: res.data.address || "",
+        dateOfBirth: res.data.dateOfBirth?.split("T")[0] || "",
+        gender: res.data.gender || "",
+        bloodGroup: res.data.bloodGroup || "",
+      });
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      const res = await axios.get("http://localhost:8000/api/appointment/user", config);
+      setAppointments(res.data);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    }
+  };
+
+  const fetchReferrals = async () => {
+    try {
+      const res = await axios.get("http://localhost:8000/api/refer/user", config);
+      setReferrals(res.data);
+    } catch (error) {
+      console.error("Error fetching referrals:", error);
+    }
+  };
+
+  // ==================== PROFILE FUNCTIONS ====================
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await axios.put("http://localhost:8000/api/user/profile", profileForm, config);
+      setProfile(res.data);
+      localStorage.setItem("Userinfo", JSON.stringify({ ...userInfo, user: res.data }));
+      alert("Profile updated successfully!");
+      setEditMode(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert("New passwords do not match!");
+      return;
+    }
+    setLoading(true);
+    try {
+      await axios.put(
+        "http://localhost:8000/api/user/resetpassword",
+        {
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        },
+        config
+      );
+      alert("Password changed successfully!");
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      alert(error.response?.data?.message || "Failed to change password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("UserToken");
+    localStorage.removeItem("Userinfo");
+    navigate("/");
+  };
+
+  // ==================== APPOINTMENT FUNCTIONS ====================
+  const handleBookAppointment = (doctor) => {
+    setSelectedDoctor(doctor);
+    setShowBookingModal(true);
+  };
+
+  const handleCancelAppointment = async (appointmentId) => {
+    if (!window.confirm("Are you sure you want to cancel this appointment?")) {
+      return;
+    }
+    try {
+      await axios.patch(
+        `http://localhost:8000/api/appointment/cancel/${appointmentId}`,
+        {},
+        config
+      );
+      alert("Appointment cancelled successfully!");
+      fetchAppointments();
+    } catch (error) {
+      console.error("Error cancelling appointment:", error);
+      alert(error.response?.data?.message || "Failed to cancel appointment");
+    }
+  };
+
+  // ==================== PAYMENT FUNCTIONS ====================
+  const handleOpenPayment = (bill) => {
+    setSelectedBill(bill);
+    const totalAmount = bill.finalPrice || bill.estimatedPrice || 0;
+    setPaymentAmount(totalAmount);
+    setPaymentType("full");
+    setEmiOption(null);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentTypeChange = (type) => {
+    setPaymentType(type);
+    const totalAmount = selectedBill.finalPrice || selectedBill.estimatedPrice || 0;
+    
+    if (type === "full") {
+      setPaymentAmount(totalAmount);
+      setEmiOption(null);
+    } else {
+      setEmiOption(2); // Default to 2 EMI
+      setPaymentAmount(totalAmount / 2);
+    }
+  };
+
+  const handleEmiChange = (emi) => {
+    setEmiOption(emi);
+    const totalAmount = selectedBill.finalPrice || selectedBill.estimatedPrice || 0;
+    setPaymentAmount(totalAmount / emi);
+  };
+
+  const handleProcessPayment = async () => {
+    if (!paymentMethod) {
+      alert("Please select a payment method");
+      return;
+    }
+
+    setProcessingPayment(true);
+    try {
+      const paymentData = {
+        amount: paymentAmount,
+        paymentMethod: paymentMethod,
+        transactionId: `TXN${Date.now()}`,
+        paymentType: paymentType,
+        emiOption: paymentType === "partial" ? emiOption : null
+      };
+
+      await axios.post(
+        `http://localhost:8000/api/bill/payment/${selectedBill._id}`,
+        paymentData,
+        config
+      );
+
+      alert(`Payment of ₹${paymentAmount.toLocaleString()} processed successfully!`);
+      setShowPaymentModal(false);
+      setShowBillModal(false);
+      fetchReferrals(); // Refresh referrals to update payment status
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      alert(error.response?.data?.message || "Failed to process payment");
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  // ==================== FILTER FUNCTIONS ====================
+  const getUniqueDepartments = () => {
+    const departments = new Set();
+    hospitals.forEach((hospital) => {
+      hospital.departments?.forEach((dept) => departments.add(dept));
+    });
+    return Array.from(departments);
+  };
+
+  const filteredHospitals = hospitals.filter((hospital) => {
+    const matchesSearch =
+      hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      hospital.address.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesDepartment =
+      filterDepartment === "all" ||
+      hospital.departments?.includes(filterDepartment);
+
+    return matchesSearch && matchesDepartment;
+  });
+
+  const filteredDoctors = hospitalDoctors.filter((doctor) =>
+    doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+// UserDashboard_Part2.jsx - Enhanced Hospital Browse and Doctors Page
+
+  // ==================== RENDER HOSPITALS (ENHANCED) ====================
+  const renderHospitals = () => (
+    <div className="space-y-6">
+      {/* Enhanced Header with Gradient */}
+      <div className={`${bgSecondary} rounded-2xl shadow-xl p-8 border ${borderColor} bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-2 flex items-center">
+              <svg className="w-10 h-10 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              Discover Healthcare Excellence
+            </h2>
+            <p className="text-cyan-100 text-lg">Find the perfect hospital for your healthcare needs</p>
+          </div>
+          <div className="hidden md:block">
+            <div className="w-32 h-32 bg-white bg-opacity-20 rounded-full flex items-center justify-center backdrop-blur-sm">
+              <svg className="w-20 h-20 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-3 gap-4 mt-6">
+          <div className="bg-white bg-opacity-20 rounded-xl p-4 backdrop-blur-sm">
+            <p className="text-white text-sm font-semibold">Total Hospitals</p>
+            <p className="text-3xl font-bold text-white mt-1">{hospitals.length}</p>
+          </div>
+          <div className="bg-white bg-opacity-20 rounded-xl p-4 backdrop-blur-sm">
+            <p className="text-white text-sm font-semibold">Departments</p>
+            <p className="text-3xl font-bold text-white mt-1">{getUniqueDepartments().length}</p>
+          </div>
+          <div className="bg-white bg-opacity-20 rounded-xl p-4 backdrop-blur-sm">
+            <p className="text-white text-sm font-semibold">Available Now</p>
+            <p className="text-3xl font-bold text-white mt-1">{filteredHospitals.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Search and Filter */}
+      <div className={`${bgSecondary} rounded-xl shadow-lg p-6 border ${borderColor}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={`block text-sm font-bold ${textPrimary} mb-2 flex items-center`}>
+              <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Search Hospitals
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name, location, or specialty..."
+                className={`w-full pl-12 pr-4 py-3 border-2 ${borderColor} rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} transition-all`}
+              />
+              <svg
+                className="w-6 h-6 text-gray-400 absolute left-4 top-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <div>
+            <label className={`block text-sm font-bold ${textPrimary} mb-2 flex items-center`}>
+              <svg className="w-5 h-5 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filter by Department
+            </label>
+            <select
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className={`w-full px-4 py-3 border-2 ${borderColor} rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+            >
+              <option value="all">🏥 All Departments</option>
+              {getUniqueDepartments().map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Hospitals Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredHospitals.length === 0 ? (
+          <div className={`col-span-full ${bgSecondary} rounded-xl p-12 text-center border ${borderColor}`}>
+            <svg
+              className="w-20 h-20 text-gray-300 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              />
+            </svg>
+            <p className={`${textPrimary} text-lg font-semibold`}>No hospitals found</p>
+            <p className={textSecondary}>Try adjusting your search or filters</p>
+          </div>
+        ) : (
+          filteredHospitals.map((hospital) => (
+            <div
+              key={hospital._id}
+              className={`${bgSecondary} rounded-2xl shadow-lg border ${borderColor} overflow-hidden hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300`}
+            >
+              {/* Enhanced Hospital Header with Gradient */}
+              <div className="bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-12 -mb-12"></div>
+                
+                <div className="relative flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg className="w-10 h-10 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-1">{hospital.name}</h3>
+                    <div className="flex items-center space-x-1">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="w-4 h-4 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hospital Details */}
+              <div className="p-6 space-y-4">
+                <div className="flex items-start space-x-3 text-sm">
+                  <svg className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className={textSecondary}>{hospital.address}</span>
+                </div>
+
+                <div className="flex items-center space-x-3 text-sm">
+                  <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span className={textSecondary}>{hospital.phone}</span>
+                </div>
+
+                <div className="flex items-center space-x-3 text-sm">
+                  <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span className={textSecondary}>{hospital.email}</span>
+                </div>
+
+                {hospital.website && (
+                  <div className="flex items-center space-x-3 text-sm">
+                    <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <a href={hospital.website} target="_blank" rel="noopener noreferrer" className="text-cyan-600 hover:underline hover:text-cyan-700 font-medium">
+                      Visit Website
+                    </a>
+                  </div>
+                )}
+
+                {hospital.departments && hospital.departments.length > 0 && (
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-3 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      SPECIALTIES
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {hospital.departments.slice(0, 4).map((dept, index) => (
+                        <span key={index} className="bg-gradient-to-r from-cyan-100 to-blue-100 dark:from-cyan-900 dark:to-blue-900 text-cyan-800 dark:text-cyan-200 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm">
+                          {dept}
+                        </span>
+                      ))}
+                      {hospital.departments.length > 4 && (
+                        <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full text-xs font-semibold">
+                          +{hospital.departments.length - 4} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => fetchHospitalDoctors(hospital._id)}
+                  className="w-full mt-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 hover:from-cyan-700 hover:via-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>View Doctors</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  // ==================== RENDER DOCTORS ====================
+  const renderDoctors = () => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className={`${bgSecondary} rounded-xl shadow-md p-6 border ${borderColor}`}>
+        <button
+          onClick={() => {
+            setActivePage("hospitals");
+            setSelectedHospital(null);
+            setHospitalDoctors([]);
+            setSearchTerm("");
+          }}
+          className="mb-4 text-cyan-600 hover:text-cyan-800 font-semibold flex items-center transition-colors"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Hospitals
+        </button>
+
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-900 rounded-lg flex items-center justify-center">
+            <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+          <div>
+            <h2 className={`text-2xl font-bold ${textPrimary}`}>{selectedHospital?.name}</h2>
+            <p className={textSecondary}>Browse our medical professionals</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className={`${bgSecondary} rounded-xl shadow-md p-6 border ${borderColor}`}>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search doctors by name or specialization..."
+            className={`w-full pl-10 pr-4 py-2 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+          />
+          <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Doctors Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading ? (
+          <div className="col-span-full text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto"></div>
+            <p className={`mt-4 ${textSecondary}`}>Loading doctors...</p>
+          </div>
+        ) : filteredDoctors.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <p className={textSecondary}>No doctors found</p>
+          </div>
+        ) : (
+          filteredDoctors.map((doctor) => (
+            <div key={doctor._id} className={`${bgSecondary} rounded-xl shadow-md border ${borderColor} overflow-hidden hover:shadow-xl transition-shadow duration-200`}>
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900 dark:to-blue-900 p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
+                    {doctor.name?.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className={`text-xl font-bold ${textPrimary}`}>Dr. {doctor.name}</h3>
+                    <p className="text-sm text-cyan-600 font-semibold">{doctor.specialization}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-3">
+                <div className={`flex items-center space-x-2 text-sm ${textSecondary}`}>
+                  <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                  <span>{doctor.qualification}</span>
+                </div>
+
+                <div className={`flex items-center space-x-2 text-sm ${textSecondary}`}>
+                  <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{doctor.experience} years experience</span>
+                </div>
+
+                <div className={`flex items-center space-x-2 text-sm ${textSecondary}`}>
+                  <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span>{doctor.phone}</span>
+                </div>
+
+                <div className={`flex items-center space-x-2 text-sm ${textSecondary}`}>
+                  <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span>{doctor.email}</span>
+                </div>
+
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-semibold ${textSecondary}`}>Consultation Fee:</span>
+                    <span className="text-lg font-bold text-cyan-600">₹{doctor.consultationFee}</span>
+                  </div>
+                </div>
+
+                {doctor.departments && doctor.departments.length > 0 && (
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className={`text-xs font-semibold ${textSecondary} mb-2`}>Departments:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {doctor.departments.map((dept, index) => (
+                        <span key={index} className="bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 px-2 py-1 rounded text-xs font-medium">
+                          {dept}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {doctor.availableDays && doctor.availableDays.length > 0 && (
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className={`text-xs font-semibold ${textSecondary} mb-2`}>Available:</p>
+                    <p className={`text-sm ${textPrimary}`}>{doctor.availableDays.join(", ")}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => handleBookAppointment(doctor)}
+                  className="w-full mt-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center space-x-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Book Appointment</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+// ==================== RENDER APPOINTMENTS ====================
+  const renderAppointments = () => (
+    <div className="space-y-6">
+      <div className={`${bgSecondary} rounded-xl shadow-md p-6 border ${borderColor}`}>
+        <h2 className={`text-2xl font-bold ${textPrimary} mb-2`}>My Appointments</h2>
+        <p className={textSecondary}>View and manage your medical appointments</p>
+      </div>
+
+      {appointments.length === 0 ? (
+        <div className={`${bgSecondary} rounded-xl shadow-md p-12 text-center`}>
+          <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p className={`${textSecondary} text-lg`}>No appointments yet</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6">
+          {appointments.map((appointment) => (
+            <div key={appointment._id} className={`${bgSecondary} rounded-xl shadow-md border ${borderColor} p-6`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="w-16 h-16 bg-cyan-100 dark:bg-cyan-900 rounded-full flex items-center justify-center">
+                      <svg className="w-8 h-8 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className={`text-xl font-bold ${textPrimary}`}>Dr. {appointment.doctorId?.name}</h3>
+                      <p className={`text-sm ${textSecondary}`}>{appointment.doctorId?.specialization}</p>
+                      <p className={`text-sm ${textSecondary}`}>{appointment.hospitalId?.name}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className={`text-sm ${textSecondary} font-semibold`}>Date & Time:</p>
+                      <p className={textPrimary}>
+                        {new Date(appointment.appointmentDate).toLocaleDateString()} at {appointment.appointmentTime}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={`text-sm ${textSecondary} font-semibold`}>Patient:</p>
+                      <p className={textPrimary}>
+                        {appointment.isSelf ? appointment.patientName : `${appointment.familyMemberName} (${appointment.familyMemberRelation})`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={`text-sm ${textSecondary} font-semibold`}>Reason:</p>
+                      <p className={textPrimary}>{appointment.reason}</p>
+                    </div>
+                    <div>
+                      <p className={`text-sm ${textSecondary} font-semibold`}>Consultation Fee:</p>
+                      <p className={textPrimary}>₹{appointment.consultationFee}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ml-4">
+                  <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                    appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                    appointment.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                    appointment.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                    appointment.status === 'completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                  }`}>
+                    {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                  </span>
+
+                  {appointment.status === 'pending' && (
+                    <button
+                      onClick={() => handleCancelAppointment(appointment._id)}
+                      className="mt-3 w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {appointment.rejectionReason && (
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg">
+                  <p className="text-sm text-red-800 dark:text-red-200"><strong>Rejection Reason:</strong> {appointment.rejectionReason}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // ==================== RENDER REFERRALS WITH PAYMENT ====================
+  const renderReferrals = () => (
+    <div className="space-y-6">
+      {/* Existing referrals header and stats - keeping your code */}
+      <div className={`${bgSecondary} rounded-xl shadow-md p-6 border ${borderColor}`}>
+        <h2 className={`text-2xl font-bold ${textPrimary} mb-2`}>My Referrals & Bills</h2>
+        <p className={textSecondary}>Track your hospital referrals and billing information</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900 dark:to-cyan-900 border border-blue-200 dark:border-blue-700 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Total Referrals</p>
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">{referrals.length}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900 dark:to-amber-900 border border-yellow-200 dark:border-yellow-700 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Pending</p>
+              <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-2">
+                {referrals.filter(r => r.status === "pending").length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900 dark:to-emerald-900 border border-green-200 dark:border-green-700 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Accepted</p>
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">
+                {referrals.filter(r => r.status === "accepted").length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900 dark:to-pink-900 border border-purple-200 dark:border-purple-700 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Completed</p>
+              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">
+                {referrals.filter(r => r.status === "completed").length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Referrals Table - keeping your existing table with added Pay button */}
+      <div className={`${bgSecondary} rounded-xl shadow-md border ${borderColor} overflow-hidden`}>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h3 className={`text-lg font-bold ${textPrimary}`}>My Referrals</h3>
+        </div>
+
+        {referrals.length === 0 ? (
+          <div className="p-12 text-center">
+            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className={`${textSecondary} text-lg`}>No referrals yet</p>
+            <p className={`${textSecondary} text-sm mt-1`}>Your doctor will create referrals when needed</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Hospital</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Operation</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Amount</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Payment</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {referrals.map((referral) => (
+                  <tr key={referral._id} className={hoverBg}>
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className={`font-semibold ${textPrimary}`}>{referral.hospitalId?.name || "N/A"}</p>
+                        <p className={`text-sm ${textSecondary}`}>{referral.hospitalId?.phone || ""}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {referral.operationId ? (
+                        <div>
+                          <p className={`font-medium ${textPrimary}`}>{referral.operationId.operationName}</p>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">No operation</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-lg font-bold text-green-600">₹{(referral.finalPrice || referral.estimatedPrice || 0).toLocaleString()}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(referral.status)}`}>
+                        {referral.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(referral.paymentStatus || 'pending')}`}>
+                        {(referral.paymentStatus || 'pending').toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedReferral(referral);
+                            setShowReferralDetailsModal(true);
+                          }}
+                          className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-lg text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                        >
+                          View Details
+                        </button>
+                        {(referral.status === 'accepted' || referral.status === 'completed') && referral.paymentStatus !== 'paid' && (
+                          <button
+                            onClick={() => handleOpenPayment(referral)}
+                            className="px-3 py-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg"
+                          >
+                            💳 Pay Now
+                          </button>
+                        )}
+                        {referral.paymentStatus === 'paid' && (
+                          <button
+                            onClick={() => {
+                              setSelectedBill(referral);
+                              setShowBillModal(true);
+                            }}
+                            className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-200 rounded-lg text-sm font-medium hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                          >
+                            View Receipt
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedBill && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${bgSecondary} rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto`}>
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-500 to-emerald-600">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-white">Complete Payment</h3>
+                  <p className="text-green-100 text-sm">Secure payment processing</p>
+                </div>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-white hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Bill Summary */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900 dark:to-cyan-900 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
+                <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-3">Bill Summary</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Hospital:</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedBill.hospitalId?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Operation:</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedBill.operationId?.operationName || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-blue-200 dark:border-blue-700">
+                    <span className="text-gray-800 dark:text-gray-200 font-bold">Total Amount:</span>
+                    <span className="text-xl font-bold text-green-600">₹{(selectedBill.finalPrice || selectedBill.estimatedPrice || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Type Selection */}
+              <div>
+                <label className={`block text-sm font-bold ${textPrimary} mb-3`}>Select Payment Type</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => handlePaymentTypeChange("full")}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      paymentType === "full"
+                        ? "border-green-600 bg-green-50 dark:bg-green-900"
+                        : "border-gray-200 dark:border-gray-700"
+                    }`}
+                  >
+                    <div className="text-center">
+                      <svg className="w-8 h-8 mx-auto mb-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className={`font-bold ${textPrimary}`}>Full Payment</p>
+                      <p className="text-sm text-green-600 font-semibold mt-1">
+                        ₹{(selectedBill.finalPrice || selectedBill.estimatedPrice || 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handlePaymentTypeChange("partial")}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      paymentType === "partial"
+                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900"
+                        : "border-gray-200 dark:border-gray-700"
+                    }`}
+                  >
+                    <div className="text-center">
+                      <svg className="w-8 h-8 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className={`font-bold ${textPrimary}`}>Partial (EMI)</p>
+                      <p className="text-sm text-blue-600 font-semibold mt-1">Pay in installments</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* EMI Options */}
+              {paymentType === "partial" && (
+                <div>
+                  <label className={`block text-sm font-bold ${textPrimary} mb-3`}>Choose EMI Plan</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => handleEmiChange(2)}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        emiOption === 2
+                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900"
+                          : "border-gray-200 dark:border-gray-700"
+                      }`}
+                    >
+                      <p className={`font-bold ${textPrimary} text-lg`}>2 EMI</p>
+                      <p className="text-sm text-blue-600 font-semibold mt-1">
+                        ₹{((selectedBill.finalPrice || selectedBill.estimatedPrice || 0) / 2).toLocaleString()} / month
+                      </p>
+                    </button>
+
+                    <button
+                      onClick={() => handleEmiChange(3)}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        emiOption === 3
+                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900"
+                          : "border-gray-200 dark:border-gray-700"
+                      }`}
+                    >
+                      <p className={`font-bold ${textPrimary} text-lg`}>3 EMI</p>
+                      <p className="text-sm text-blue-600 font-semibold mt-1">
+                        ₹{((selectedBill.finalPrice || selectedBill.estimatedPrice || 0) / 3).toLocaleString()} / month
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Method */}
+              <div>
+                <label className={`block text-sm font-bold ${textPrimary} mb-3`}>Payment Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className={`w-full px-4 py-3 border ${borderColor} rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                >
+                  <option value="card">💳 Credit/Debit Card</option>
+                  <option value="upi">📱 UPI</option>
+                  <option value="netbanking">🏦 Net Banking</option>
+                  <option value="cash">💵 Cash</option>
+                </select>
+              </div>
+
+              {/* Payment Summary */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+                <div className="flex justify-between items-center">
+                  <span className={`font-bold ${textPrimary}`}>You will pay now:</span>
+                  <span className="text-2xl font-bold text-green-600">₹{paymentAmount.toLocaleString()}</span>
+                </div>
+                {paymentType === "partial" && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                    Remaining amount will be paid in {emiOption - 1} installment{emiOption > 2 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-3 rounded-xl font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleProcessPayment}
+                  disabled={processingPayment}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {processingPayment ? "Processing..." : `Pay ₹${paymentAmount.toLocaleString()}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+  // ==================== RENDER COMPLETE PROFILE ====================
+  const renderProfile = () => (
+    <div className="space-y-6">
+      {/* Profile Header */}
+      <div className={`${bgSecondary} rounded-2xl shadow-xl p-8 border ${borderColor}`}>
+        <div className="flex items-center space-x-6">
+          <div className="w-24 h-24 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-4xl shadow-lg">
+            {profile?.name?.charAt(0) || "P"}
+          </div>
+          <div className="flex-1">
+            <h2 className={`text-3xl font-bold ${textPrimary} mb-2`}>{profile?.name || "Patient Name"}</h2>
+            <p className={`${textSecondary} text-lg`}>{profile?.email}</p>
+            <div className="flex items-center space-x-4 mt-3">
+              <span className="px-4 py-1.5 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm font-semibold">
+                Active Patient
+              </span>
+              <span className={`${textSecondary} text-sm`}>Member since {new Date(profile?.createdAt).getFullYear() || "2024"}</span>
+            </div>
+          </div>
+          {!editMode && (
+            <button
+              onClick={() => setEditMode(true)}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg flex items-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span>Edit Profile</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Profile Information */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Personal Information */}
+          <div className={`${bgSecondary} rounded-xl shadow-md border ${borderColor} p-6`}>
+            <h3 className={`text-xl font-bold ${textPrimary} mb-6 flex items-center`}>
+              <svg className="w-6 h-6 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Personal Information
+            </h3>
+
+            {editMode ? (
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Full Name</label>
+                    <input
+                      type="text"
+                      value={profileForm.name}
+                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                      className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Email</label>
+                    <input
+                      type="email"
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Phone</label>
+                    <input
+                      type="tel"
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Date of Birth</label>
+                    <input
+                      type="date"
+                      value={profileForm.dateOfBirth}
+                      onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
+                      className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Gender</label>
+                    <select
+                      value={profileForm.gender}
+                      onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
+                      className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Blood Group</label>
+                    <select
+                      value={profileForm.bloodGroup}
+                      onChange={(e) => setProfileForm({ ...profileForm, bloodGroup: e.target.value })}
+                      className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                    >
+                      <option value="">Select Blood Group</option>
+                      {bloodGroups.map((group) => (
+                        <option key={group} value={group}>{group}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Address</label>
+                    <textarea
+                      value={profileForm.address}
+                      onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                      rows="3"
+                      className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                  >
+                    {loading ? "Saving..." : "Save Changes"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditMode(false)}
+                    className="px-6 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className={`text-sm ${textSecondary} mb-1`}>Phone Number</p>
+                  <p className={`font-semibold ${textPrimary}`}>{profile?.phone || "Not set"}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${textSecondary} mb-1`}>Date of Birth</p>
+                  <p className={`font-semibold ${textPrimary}`}>{profile?.dateOfBirth ? formatDate(profile.dateOfBirth) : "Not set"}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${textSecondary} mb-1`}>Gender</p>
+                  <p className={`font-semibold ${textPrimary}`}>{profile?.gender || "Not set"}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${textSecondary} mb-1`}>Blood Group</p>
+                  <p className={`font-semibold ${textPrimary}`}>{profile?.bloodGroup || "Not set"}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className={`text-sm ${textSecondary} mb-1`}>Address</p>
+                  <p className={`font-semibold ${textPrimary}`}>{profile?.address || "Not set"}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Change Password */}
+          <div className={`${bgSecondary} rounded-xl shadow-md border ${borderColor} p-6`}>
+            <h3 className={`text-xl font-bold ${textPrimary} mb-6 flex items-center`}>
+              <svg className="w-6 h-6 mr-2 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Change Password
+            </h3>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Current Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                  className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>New Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold ${textPrimary} mb-2`}>Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  className={`w-full px-4 py-2.5 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+              >
+                {loading ? "Updating..." : "Update Password"}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Stats & Quick Actions Sidebar */}
+        <div className="space-y-6">
+          {/* Quick Stats */}
+          <div className={`${bgSecondary} rounded-xl shadow-md border ${borderColor} p-6`}>
+            <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Quick Stats</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <span className={`font-semibold ${textPrimary}`}>Appointments</span>
+                </div>
+                <span className="text-2xl font-bold text-blue-600">{appointments.length}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <span className={`font-semibold ${textPrimary}`}>Referrals</span>
+                </div>
+                <span className="text-2xl font-bold text-purple-600">{referrals.length}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className={`font-semibold ${textPrimary}`}>Completed</span>
+                </div>
+                <span className="text-2xl font-bold text-green-600">
+                  {referrals.filter(r => r.status === 'completed').length}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className={`${bgSecondary} rounded-xl shadow-md border ${borderColor} p-6`}>
+            <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Quick Actions</h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => setActivePage("hospitals")}
+                className="w-full flex items-center space-x-3 p-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <span className="font-semibold">Find Hospital</span>
+              </button>
+
+              <button
+                onClick={() => setActivePage("appointments")}
+                className="w-full flex items-center space-x-3 p-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="font-semibold">My Appointments</span>
+              </button>
+
+              <button
+                onClick={() => setActivePage("referrals")}
+                className="w-full flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="font-semibold">View Referrals</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Account Info */}
+          <div className={`${bgSecondary} rounded-xl shadow-md border ${borderColor} p-6`}>
+            <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Account Info</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className={textSecondary}>Member Since</span>
+                <span className={`font-semibold ${textPrimary}`}>{new Date(profile?.createdAt).toLocaleDateString() || "N/A"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className={textSecondary}>Status</span>
+                <span className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-xs font-semibold">
+                  Active
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ==================== MAIN RENDER ====================
+  const menuItems = [
+    {
+      id: "hospitals",
+      label: "Browse Hospitals",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
+    },
+    {
+      id: "appointments",
+      label: "My Appointments",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+      badge: appointments.filter(a => a.status === 'pending').length > 0 ? appointments.filter(a => a.status === 'pending').length : null,
+    },
+    {
+      id: "referrals",
+      label: "Referrals & Bills",
+      badge: referrals.filter(r => r.status === "accepted" || r.status === "completed").length > 0
+        ? referrals.filter(r => r.status === "accepted" || r.status === "completed").length
+        : null,
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+    {
+      id: "profile",
+      label: "My Profile",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className={`flex h-screen ${bgPrimary}`}>
+      {/* Sidebar */}
+      <aside className={`w-64 ${darkMode ? 'bg-gradient-to-b from-gray-800 to-gray-900' : 'bg-gradient-to-b from-cyan-600 to-blue-700'} text-white flex flex-col`}>
+        <div className="p-6 border-b border-cyan-500 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Patient Portal</h2>
+              <p className="text-xs text-cyan-200">Healthcare Access</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-2">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActivePage(item.id)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 ${
+                activePage === item.id
+                  ? "bg-white text-cyan-600 shadow-lg"
+                  : "text-white hover:bg-cyan-500 dark:hover:bg-gray-700"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                {item.icon}
+                <span className="font-medium">{item.label}</span>
+              </div>
+              {item.badge && (
+                <span className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* Dark Mode Toggle */}
+        <div className="p-4 border-t border-cyan-500 dark:border-gray-700">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-cyan-500 dark:bg-gray-700 hover:bg-cyan-600 dark:hover:bg-gray-600 transition-all"
+          >
+            <span className="font-medium">Theme</span>
+            {darkMode ? (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        <div className="p-4 border-t border-cyan-500 dark:border-gray-700">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-red-500 hover:bg-red-600 transition-all duration-200"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Topbar */}
+        <header className={`${bgSecondary} shadow-sm border-b ${borderColor} px-6 py-4`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className={`text-2xl font-bold ${textPrimary}`}>
+                Welcome, {profile?.name || userInfo?.user?.name || "Patient"}!
+              </h1>
+              <p className={`text-sm ${textSecondary}`}>
+                {currentTime.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })} • {currentTime.toLocaleTimeString()}
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className={`text-sm font-semibold ${textPrimary}`}>
+                  {profile?.name || userInfo?.user?.name || "Patient"}
+                </p>
+                <p className={`text-xs ${textSecondary}`}>{profile?.email || userInfo?.user?.email}</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {profile?.name?.charAt(0) || userInfo?.user?.name?.charAt(0) || "P"}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main className={`flex-1 overflow-x-hidden overflow-y-auto ${bgPrimary} p-6`}>
+          {activePage === "hospitals" && renderHospitals()}
+          {activePage === "doctors" && renderDoctors()}
+          {activePage === "appointments" && renderAppointments()}
+          {activePage === "referrals" && renderReferrals()}
+          {activePage === "profile" && renderProfile()}
+        </main>
+      </div>
+
+      {/* Booking Modal */}
+      {showBookingModal && selectedDoctor && (
+        <BookAppointment
+          doctorId={selectedDoctor._id}
+          onClose={() => {
+            setShowBookingModal(false);
+            setSelectedDoctor(null);
+          }}
+          onSuccess={() => {
+            fetchAppointments();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default UserDashboard;
