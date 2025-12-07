@@ -7,7 +7,7 @@ const {
   getPrescriptionByAppointment,
   updatePrescription,
   deletePrescription
-} = require('../controllers/prescriptionController');
+} = require('../controllers/Prescriptioncontroller');
 const protect = require('../middleware/auth');
 
 
