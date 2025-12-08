@@ -17,7 +17,7 @@ const protect = async (req, res, next) => {
       } else if (decoded.role === 'doctor') {
         req.user = await Doctor.findById(decoded.id).select('-password');
       }
-
+      console.log("first")
       req.userRole = decoded.role;
       next();
     } catch (error) {

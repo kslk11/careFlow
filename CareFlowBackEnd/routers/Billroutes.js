@@ -1,49 +1,36 @@
-// billRoutes.js - Bill Routes
-
 const express = require('express');
 const router = express.Router();
-const {
-    createBill,
-    createBillFromReferral,
-    getHospitalBills,
-    getIncomeStats,
-    getBillById,
-    updateBill,
-    recordPayment,
-    deleteBill,
-    getBillByNumber
-} = require('../controllers/Billcontroller');
+const Billcontrollers = require('../controllers/Billcontroller');
 
-// Middleware (adjust path based on your structure)
 const protect = require('../middleware/auth');
 
-// ==================== HOSPITAL ROUTES ====================
-
 // Create a new bill manually
-router.post('/create', protect, createBill);
+router.post('/create', protect, Billcontrollers.createBill);
 
 // Create bill from completed referral (automatic)
-router.post('/create-from-referral', protect, createBillFromReferral);
+router.post('/create-from-referral/:id', Billcontrollers.createBillFromReferral);
 
 // Get all bills for hospital with filters
-router.get('/hospital', protect, getHospitalBills);
+router.get('/hospital', protect, Billcontrollers.getHospitalBills);
 
 // Get income statistics (for income dashboard)
-router.get('/income-stats', protect, getIncomeStats);
+router.get('/income-stats', protect, Billcontrollers.getIncomeStats);
 
 // Get bill by bill number
-router.get('/number/:billNumber', protect, getBillByNumber);
+router.get('/number/:billNumber', protect, Billcontrollers.getBillByNumber);
 
 // Get single bill by ID
-router.get('/:billId', getBillById);
+router.get('hello/:billId', Billcontrollers.getBillById);
 
 // Update bill
-router.put('/update/:billId', protect, updateBill);
+router.put('/update/:billId', protect, Billcontrollers.updateBill);
 
 // Record payment for a bill
-router.post('/payment/:billId', protect, recordPayment);
+router.post('/payment/:billId', protect, Billcontrollers.recordPayment);
 
 // Delete bill (only unpaid bills)
-router.delete('/:billId', protect, deleteBill);
-
+router.delete('/:billId', protect, Billcontrollers.deleteBill);
+router.get('/getAll/bill',protect, Billcontrollers.getAllbills)
+router.get('/user', protect, Billcontrollers.getUserBills);
+router.get('/userByBody', protect,Billcontrollers.getBillByIdByBody);
 module.exports = router;

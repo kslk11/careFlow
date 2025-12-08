@@ -130,17 +130,17 @@ const billSchema = new mongoose.Schema({
     },
 
     // Revenue Split (90% Hospital, 10% Admin)
-    hospitalShare: {
-        type: Number,
-        required: true,
-        min: 0
-    },
+    // hospitalShare: {
+    //     type: Number,
+    //     required: true,
+    //     min: 0
+    // },
 
-    adminShare: {
-        type: Number,
-        required: true,
-        min: 0
-    },
+    // adminShare: {
+    //     type: Number,
+    //     required: true,
+    //     min: 0
+    // },
 
     // Payment Information
     paymentStatus: {

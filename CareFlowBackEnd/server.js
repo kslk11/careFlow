@@ -14,6 +14,8 @@ const operation = require('./routers/operationRoutes')
 const refer =require('./routers/referRoutes')
 const bads =require('./routers/bedRoutes')
 const billRoutes = require('./routers/Billroutes');
+const reviewRoutes = require('./routers/reviewRoutes');
+
 dotenv.config();
 mongoose.connect(process.env.MONGO_URI)
 .then(()=>console.log("Db Connected"))
@@ -37,6 +39,8 @@ app.use('/api/operation', operation);
 app.use('/api/refer',refer )
 app.use('/api/bed', bads);
 app.use('/api/bill', billRoutes);
+app.use('/api/review', reviewRoutes);
+
 app.get('/', (req, res) => {
   res.send('Hospital Management System API is running');
 });

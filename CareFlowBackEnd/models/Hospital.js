@@ -63,9 +63,64 @@ const hospitalSchema = new mongoose.Schema({
     type:String,
     enum:["light","dark"],
     default:"light"
-  }
+  },
+  ratings: {
+        average: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 5
+        },
+        count: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+        breakdown: {
+            5: { type: Number, default: 0 },
+            4: { type: Number, default: 0 },
+            3: { type: Number, default: 0 },
+            2: { type: Number, default: 0 },
+            1: { type: Number, default: 0 }
+        },
+        // Category ratings
+        categories: {
+            cleanliness: {
+                type: Number,
+                default: 0,
+                min: 0,
+                max: 5
+            },
+            staff: {
+                type: Number,
+                default: 0,
+                min: 0,
+                max: 5
+            },
+            facilities: {
+                type: Number,
+                default: 0,
+                min: 0,
+                max: 5
+            },
+            waitTime: {
+                type: Number,
+                default: 0,
+                min: 0,
+                max: 5
+            }
+        }
+    },
 }, {
   timestamps: true
 });
-
+hospitalSchema.methods.updateRating = async function(ratingData) {
+    this.ratings.average = ratingData.average;
+    this.ratings.count = ratingData.count;
+    this.ratings.breakdown = ratingData.breakdown;
+    if (ratingData.categories) {
+        this.ratings.categories = ratingData.categories;
+    }
+    await this.save();
+};
 module.exports = mongoose.model('Hospital', hospitalSchema);

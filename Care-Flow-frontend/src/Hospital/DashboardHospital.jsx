@@ -279,7 +279,6 @@ const handleRecordPayment = async (e) => {
       console.error("Error fetching beds:", error);
     }
   };
-
  const fetchBills = async () => {
   try {
     const res = await axios.get("https://careflow-lsf5.onrender.com/api/bill/hospital", config);
@@ -846,11 +845,7 @@ const handleGenerateBillFromReferral = async (referralId) => {
 
   setLoading(true);
   try {
-    await axios.post(
-      "https://careflow-lsf5.onrender.com/api/bill/create-from-referral",
-      { referralId },
-      config
-    );
+    await axios.post(`https://careflow-lsf5.onrender.com/api/bill/create-from-referral/${referralId}`,{});
     alert("Bill generated successfully!");
     fetchBills();
     fetchReferrals(); // Refresh referrals to update status
@@ -1277,9 +1272,19 @@ const [paymentForm, setPaymentForm] = useState({
   transactionId: "",
   paymentDate: new Date().toISOString().split('T')[0]
 });
+const [billsOfHospital,SetbillsOfHospital] = useState({})
 
+const fetchAllbills = async()=>{
+  const res = await axios.get('https://careflow-lsf5.onrender.com/api/bill/getAll/bill',config)
+  SetbillsOfHospital(res.data)
+}
 // ==================== FILTER EFFECT ====================
+useEffect(()=>{
+  fetchAllbills();
+},[])
+// console.log(billsOfHospital)
 useEffect(() => {
+
   if (billStatusFilter === "all") {
     setFilteredBills(bills);
   } else {
@@ -1364,7 +1369,7 @@ useEffect(() => {
             <div>
               <p className={`text-sm font-semibold ${textSecondary}`}>Hospital Share (90%)</p>
               <p className={`text-3xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'} mt-2`}>
-                ₹{hospitalShare.toLocaleString()}
+                ₹{totalIncome*0.9.toLocaleString()}
               </p>
               <p className={`text-xs ${darkMode ? 'text-green-300' : 'text-green-700'} mt-1`}>
                 Your earnings
@@ -1383,7 +1388,7 @@ useEffect(() => {
             <div>
               <p className={`text-sm font-semibold ${textSecondary}`}>Admin Share (10%)</p>
               <p className={`text-3xl font-bold ${darkMode ? 'text-purple-400' : 'text-purple-600'} mt-2`}>
-                ₹{adminShare.toLocaleString()}
+                ₹{totalIncome*.1.toLocaleString()}
               </p>
               <p className={`text-xs ${darkMode ? 'text-purple-300' : 'text-purple-700'} mt-1`}>
                 Platform fee
@@ -2428,7 +2433,7 @@ useEffect(() => {
           </span>
         ) : (
           <button
-            onClick={() => generateBillFromCompletedReferral(referral)}
+            onClick={() => handleGenerateBillFromReferral(referral._id)}
             className="text-xs text-orange-600 hover:text-orange-900 font-medium"
           >
             Generate Bill
@@ -4622,5 +4627,4 @@ const renderPaymentModal = () => {
     </div>
   );
 };
-
 export default HospitalDashboard;

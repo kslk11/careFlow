@@ -3,9 +3,10 @@ const Referral = require('../models/Refer');
 const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
 const Bed = require('../models/Bed');
+const Refer = require('../models/Refer');
 
 
-const createBill = async (req, res) => {
+exports.createBill = async (req, res) => {
     try {
         const {
             patientName,
@@ -13,6 +14,7 @@ const createBill = async (req, res) => {
             patientEmail,
             patientAddress,
             referralId,
+            pid,
             appointmentId,
             prescriptionId,
             assignedDoctorId,
@@ -24,8 +26,7 @@ const createBill = async (req, res) => {
             operationDetails,
             paymentMethod,
             paymentStatus,
-            hospitalShare,  // Add these
-            adminShare      // Add these
+            // Add these
         } = req.body;
 
         // Validate required fields
@@ -80,8 +81,7 @@ const createBill = async (req, res) => {
             paymentMethod,
             paymentStatus: paymentStatus || 'pending',
             // Use provided shares or calculate
-            hospitalShare: hospitalShare || (totalAmount * 0.9),
-            adminShare: adminShare || (totalAmount * 0.1)
+
         });
 
         // Populate the response
@@ -115,10 +115,10 @@ const createBill = async (req, res) => {
  * @desc    Create bill automatically from completed referral
  * @access  Private (Hospital)
  */
-const createBillFromReferral = async (req, res) => {
+exports.createBillFromReferral = async (req, res) => {
     try {
-        const { referralId } = req.body;
-
+        const referralId = req.params.id;
+        console.log(referralId)
         if (!referralId) {
             return res.status(400).json({
                 success: false,
@@ -127,7 +127,7 @@ const createBillFromReferral = async (req, res) => {
         }
 
         // Find the referral
-        const referral = await Referral.findById(referralId)
+        const referral = await Refer.findById(referralId)
             .populate('operationId')
             .populate('assignedBedId')
             .populate('assignedDoctorId');
@@ -251,11 +251,20 @@ const createBillFromReferral = async (req, res) => {
  * @desc    Get all bills for a hospital
  * @access  Private (Hospital)
  */
-const getHospitalBills = async (req, res) => {
+
+exports.getAllbills = async (req, res) => {
+    console.log("req.user =", req.user);
+
+    const billsByhospital = await Bill.find({
+        hospitalId: req.user.id
+    })
+    return res.json(billsByhospital);
+};
+exports.getHospitalBills = async (req, res) => {
     try {
         const { paymentStatus, fromDate, toDate, patientPhone } = req.query;
 
-        const query = { hospitalId: req.user.hospitalId };
+        const query = { hospitalId: req.user.id };
 
         // Filter by payment status
         if (paymentStatus) {
@@ -286,8 +295,6 @@ const getHospitalBills = async (req, res) => {
         const totalRevenue = bills.reduce((sum, bill) => sum + bill.totalAmount, 0);
         const totalPaid = bills.reduce((sum, bill) => sum + bill.amountPaid, 0);
         const totalDue = bills.reduce((sum, bill) => sum + bill.amountDue, 0);
-        const hospitalRevenue = bills.reduce((sum, bill) => sum + bill.hospitalShare, 0);
-        const adminRevenue = bills.reduce((sum, bill) => sum + bill.adminShare, 0);
 
         res.status(200).json({
             success: true,
@@ -296,8 +303,6 @@ const getHospitalBills = async (req, res) => {
                 totalRevenue,
                 totalPaid,
                 totalDue,
-                hospitalShare: hospitalRevenue,
-                adminShare: adminRevenue
             },
             data: bills
         });
@@ -318,22 +323,22 @@ const getHospitalBills = async (req, res) => {
  * @desc    Get detailed income statistics for hospital
  * @access  Private (Hospital)
  */
-const getIncomeStats = async (req, res) => {
+exports.getIncomeStats = async (req, res) => {
     try {
         const { year, month } = req.query;
 
-        const query = { 
-            hospitalId: req.user.hospitalId,
+        const query = {
+            hospitalId: req.user.id,
             paymentStatus: 'paid' // Only count paid bills
         };
 
         // Filter by year and month if provided
         if (year) {
             const startDate = new Date(year, month ? month - 1 : 0, 1);
-            const endDate = month 
-                ? new Date(year, month, 0) 
+            const endDate = month
+                ? new Date(year, month, 0)
                 : new Date(year, 11, 31, 23, 59, 59);
-            
+
             query.billDate = {
                 $gte: startDate,
                 $lte: endDate
@@ -344,8 +349,7 @@ const getIncomeStats = async (req, res) => {
 
         // Calculate statistics
         const totalIncome = bills.reduce((sum, bill) => sum + bill.totalAmount, 0);
-        const hospitalShare = bills.reduce((sum, bill) => sum + bill.hospitalShare, 0);
-        const adminShare = bills.reduce((sum, bill) => sum + bill.adminShare, 0);
+
         const totalBills = bills.length;
 
         // Monthly breakdown
@@ -356,14 +360,12 @@ const getIncomeStats = async (req, res) => {
                 monthlyData[month] = {
                     count: 0,
                     totalIncome: 0,
-                    hospitalShare: 0,
-                    adminShare: 0
+
                 };
             }
             monthlyData[month].count++;
             monthlyData[month].totalIncome += bill.totalAmount;
-            monthlyData[month].hospitalShare += bill.hospitalShare;
-            monthlyData[month].adminShare += bill.adminShare;
+
         });
 
         // Payment method breakdown
@@ -381,8 +383,6 @@ const getIncomeStats = async (req, res) => {
             success: true,
             data: {
                 totalIncome,
-                hospitalShare,
-                adminShare,
                 totalBills,
                 averageBillAmount: totalBills > 0 ? totalIncome / totalBills : 0,
                 monthlyBreakdown: monthlyData,
@@ -406,7 +406,7 @@ const getIncomeStats = async (req, res) => {
  * @desc    Get single bill details
  * @access  Private
  */
-const getBillById = async (req, res) => {
+exports.getBillById = async (req, res) => {
     try {
         const { billId } = req.params;
 
@@ -445,7 +445,7 @@ const getBillById = async (req, res) => {
  * @desc    Update bill details
  * @access  Private (Hospital)
  */
-const updateBill = async (req, res) => {
+exports.updateBill = async (req, res) => {
     try {
         const { billId } = req.params;
         const updateData = req.body;
@@ -460,7 +460,7 @@ const updateBill = async (req, res) => {
         }
 
         // Verify hospital owns this bill
-        if (bill.hospitalId.toString() !== req.user.hospitalId.toString()) {
+        if (bill.hospitalId.toString() !== req.user.id.toString()) {
             return res.status(403).json({
                 success: false,
                 message: "Not authorized to update this bill"
@@ -513,10 +513,10 @@ const updateBill = async (req, res) => {
  * @desc    Record payment for a bill
  * @access  Private (Hospital)
  */
-const recordPayment = async (req, res) => {
+exports.recordPayment = async (req, res) => {
     try {
         const { billId } = req.params;
-        console.log(billId)
+        console.log("billId",billId)
         const { amount, paymentMethod, transactionId } = req.body;
 
         if (!amount || amount <= 0) {
@@ -533,7 +533,7 @@ const recordPayment = async (req, res) => {
             });
         }
 
-        const bill = await Bill.findOne({referralId:billId});
+        const bill = await Bill.findOne({ _id: billId });
         console.log(bill)
         if (!bill) {
             return res.status(404).json({
@@ -541,8 +541,8 @@ const recordPayment = async (req, res) => {
                 message: "Bill not found"
             });
         }
-        console.log("Hello1",bill._id)
-        console.log("Hello2",req.user.id)
+        console.log("Hello1", bill._id)
+        console.log("Hello2", req.user.id)
         // Verify hospital owns this bill
         // if (bill._id.toString() !== req.user.id.toString()) {
         //     return res.status(403).json({
@@ -589,7 +589,7 @@ const recordPayment = async (req, res) => {
  * @desc    Delete a bill (only if not paid)
  * @access  Private (Hospital)
  */
-const deleteBill = async (req, res) => {
+exports.deleteBill = async (req, res) => {
     try {
         const { billId } = req.params;
 
@@ -641,13 +641,13 @@ const deleteBill = async (req, res) => {
  * @desc    Get bill by bill number
  * @access  Private (Hospital)
  */
-const getBillByNumber = async (req, res) => {
+exports.getBillByNumber = async (req, res) => {
     try {
         const { billNumber } = req.params;
 
-        const bill = await Bill.findOne({ 
-            billNumber, 
-            hospitalId: req.user.hospitalId 
+        const bill = await Bill.findOne({
+            billNumber,
+            hospitalId: req.user.hospitalId
         })
             .populate('hospitalId', 'name address phone email')
             .populate('assignedDoctorId', 'name specialization email phone')
@@ -677,14 +677,53 @@ const getBillByNumber = async (req, res) => {
     }
 };
 
-module.exports = {
-    createBill,
-    createBillFromReferral,
-    getHospitalBills,
-    getIncomeStats,
-    getBillById,
-    updateBill,
-    recordPayment,
-    deleteBill,
-    getBillByNumber
+// exports.getUserBills = async(req,res)=>{
+// console.log("req.user =", req.user);
+
+//     const billsByhospital = await Bill.find({
+//         hospitalId: req.user.id
+//     })
+//     return res.json(billsByhospital);
+// }
+// Get bills for logged-in user - SIMPLER VERSION
+exports.getUserBills = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        console.log("Fetching bills for user:", userId);
+
+        // 1️⃣ FIRST: Find referrals of logged-in user
+        const referrals = await Refer.find({ userId: userId }).select("_id");
+        const referralIds = referrals.map(r => r._id);
+
+        // 2️⃣ SECOND: Find bills that match those referral IDs
+        const bills = await Bill.find({ referralId: { $in: referralIds } })
+            .populate("hospitalId", "name address phone email")
+            .populate("assignedDoctorId", "name specialization")
+            .populate({
+                path: "referralId",
+                select: "userId status",
+                populate: {
+                    path: "userId",
+                    select: "name email phone"
+                }
+            })
+            .sort({ createdAt: -1 });
+
+        console.log("Found bills:", bills.length);
+
+        res.status(200).json(bills);
+
+    } catch (error) {
+        console.error("Error fetching user bills:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error while fetching bills",
+            error: error.message
+        });
+    }
 };
+
+exports.getBillByIdByBody = async(req,res)=>{
+    const UserId = req.user.id
+    console.log(UserId)
+}
