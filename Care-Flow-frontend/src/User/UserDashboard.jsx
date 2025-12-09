@@ -9,6 +9,9 @@ import StarRating from '../components/reviews/StarRating';
 import RatingModal from '../components/reviews/RatingModal';
 import ReviewsList from '../components/reviews/ReviewsList';
 import RatingDisplay from '../components/reviews/RatingDisplay';
+// Add these new imports for chatbot
+import ChatBot from '../components/chatbot/ChatBot';
+import ChatBotButton from '../components/chatbot/ChatBotButton';
 // ==================== HELPER FUNCTIONS ====================
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
@@ -84,7 +87,11 @@ const [selectedDoctorForRating, setSelectedDoctorForRating] = useState(null);
 const [selectedHospitalForRating, setSelectedHospitalForRating] = useState(null);
 const [selectedAppointmentForRating, setSelectedAppointmentForRating] = useState(null);
 const [selectedReferralForRating, setSelectedReferralForRating] = useState(null);
-  // Profile States
+  // ==================== CHATBOT STATES ====================
+const [isChatBotOpen, setIsChatBotOpen] = useState(false);
+const [chatBotUnreadCount, setChatBotUnreadCount] = useState(0);
+// Profile States
+
   const [editMode, setEditMode] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -172,6 +179,73 @@ const [selectedReferralForRating, setSelectedReferralForRating] = useState(null)
     fetchMyReviews()
   }, []);
 
+  // Prepare user data for chatbot
+const getChatBotUserData = () => {
+  return {
+    name: profile?.name || 'there',
+    appointments: appointments || [],
+    bills: bills || [],
+    hospitals: hospitals || [],
+doctors: appointments?.doctorId?.name ?? [],
+    referrals: referrals || [],
+    profile: profile || {}
+  };
+};
+// console.log(appointments)
+// Handle chatbot actions
+const handleChatBotAction = (actionType, actionData) => {
+  console.log('ChatBot Action:', actionType, actionData);
+
+  switch (actionType) {
+    case 'navigate':
+      // Navigate to different pages
+      setActivePage(actionData);
+      setIsChatBotOpen(false);
+      break;
+
+    case 'cancelAppointment':
+      // Cancel appointment
+      if (actionData?._id) {
+        handleCancelAppointment(actionData._id);
+      }
+      break;
+
+    case 'bookAppointment':
+      // Open booking modal
+      setActivePage('hospitals');
+      setIsChatBotOpen(false);
+      break;
+
+    case 'payBill':
+      // Navigate to bills page
+      setActivePage('bills');
+      setIsChatBotOpen(false);
+      break;
+
+    case 'viewDoctor':
+      // Navigate to hospitals/doctors
+      setActivePage('hospitals');
+      setIsChatBotOpen(false);
+      break;
+
+    case 'viewHospital':
+      // Navigate to hospitals
+      setActivePage('hospitals');
+      setIsChatBotOpen(false);
+      break;
+
+    default:
+      console.log('Unknown action:', actionType);
+  }
+};
+
+// Toggle chatbot
+const toggleChatBot = () => {
+  setIsChatBotOpen(!isChatBotOpen);
+  if (!isChatBotOpen) {
+    setChatBotUnreadCount(0); // Clear unread count when opening
+  }
+};
   // ==================== FETCH FUNCTIONS ====================
   const fetchHospitals = async () => {
     try {
@@ -2518,6 +2592,24 @@ const renderMyReviews = () => {
           </div>
         </div>
       )}
+       {/* ==================== ✅ NEW: CHATBOT COMPONENTS ==================== */}
+    
+    {/* ChatBot Component */}
+    <ChatBot
+      isOpen={isChatBotOpen}
+      onClose={() => setIsChatBotOpen(false)}
+      userData={getChatBotUserData()}
+      onAction={handleChatBotAction}
+      darkMode={darkMode}
+    />
+
+    {/* ChatBot Floating Button */}
+    <ChatBotButton
+      onClick={toggleChatBot}
+      isOpen={isChatBotOpen}
+      darkMode={darkMode}
+      unreadCount={chatBotUnreadCount}
+    />
     </div>
   );
 };
