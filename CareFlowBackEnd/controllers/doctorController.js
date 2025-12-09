@@ -3,13 +3,12 @@ const Doctor = require('../models/Doctor');
 const Hospital = require('../models/Hospital');
 const Appointments = require('../models/Appointment')
 const generateToken = require('../utils/generateToken');
-
+const generatePass = () => Math.floor(10000000 + Math.random() * 90000000).toString()
 exports.registerDoctor = async (req, res) => {
   try {
     const { 
       name, 
-      email, 
-      password, 
+      email,  
       phone, 
       specialization, 
       qualification, 
@@ -19,24 +18,25 @@ exports.registerDoctor = async (req, res) => {
       consultationFee, 
       licenseNumber,
       bio,
+      mode,  // OPTIONAL
       availableDays,
       availableTimeSlots
     } = req.body;
 
+    // Check if doctor already exists
     const existingDoctor = await Doctor.findOne({ email });
-
     if (existingDoctor) {
       return res.status(400).json({ message: 'Doctor already exists with this email' });
     }
 
+    // Check license number
     const existingLicense = await Doctor.findOne({ licenseNumber });
-
     if (existingLicense) {
       return res.status(400).json({ message: 'License number already exists' });
     }
 
+    // Check hospital
     const hospital = await Hospital.findById(hospitalId);
-
     if (!hospital) {
       return res.status(404).json({ message: 'Hospital not found' });
     }
@@ -45,9 +45,15 @@ exports.registerDoctor = async (req, res) => {
       return res.status(400).json({ message: 'Cannot register with unapproved hospital' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Generate Password
+    const plainPassword = generatePass();
+    console.log("Generated Password:", plainPassword);
 
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hashSync(plainPassword, salt);
+
+    // Create doctor
     const doctor = await Doctor.create({
       name,
       email,
@@ -60,14 +66,62 @@ exports.registerDoctor = async (req, res) => {
       departments,
       consultationFee,
       licenseNumber,
-      mode,
+      mode: mode,
       bio: bio || "",
       availableDays: availableDays || [],
       availableTimeSlots: availableTimeSlots || { start: "", end: "" }
     });
 
+    // Generate token
     const token = generateToken(doctor._id, 'doctor');
 
+    // Email HTML template
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Your Account Credentials</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #333; }
+            .container { max-width: 600px; margin: auto; padding: 20px; }
+            .header { background-color: #007BFF; color: white; padding: 10px; text-align: center; }
+            .content { margin-top: 20px; }
+            .credential { background-color: #f7f7f7; padding: 15px; border-radius: 5px; }
+            .credential p { margin: 5px 0; }
+            .footer { margin-top: 30px; font-size: 0.9em; color: #555; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2>Welcome, ${name}!</h2>
+            </div>
+            <div class="content">
+              <p>Your doctor account has been created successfully. Below are your login credentials:</p>
+              <div class="credential">
+                <p><strong>User ID:</strong> ${doctor._id}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Password:</strong> ${plainPassword}</p>
+              </div>
+              <p>Please keep this information secure. On first login, you may change the password for better security.</p>
+            </div>
+            <div class="footer">
+              <p>If you did not request this account, please ignore this email or contact support.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Send Email
+    await sendEmail({
+      to: email,
+      subject: "Your Doctor Account Credentials",
+      html
+    });
+
+    // Response
     res.status(201).json({
       _id: doctor._id,
       name: doctor.name,
@@ -78,7 +132,9 @@ exports.registerDoctor = async (req, res) => {
       availableTimeSlots: doctor.availableTimeSlots,
       token
     });
+
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 };

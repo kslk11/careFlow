@@ -87,7 +87,6 @@ const HospitalDashboard = () => {
   const [newDoctor, setNewDoctor] = useState({
     name: "",
     email: "",
-    password: "",
     phone: "",
     specialization: "",
     qualification: "",
@@ -413,7 +412,6 @@ const handleRecordPayment = async (e) => {
       setNewDoctor({
         name: "",
         email: "",
-        password: "",
         phone: "",
         specialization: "",
         qualification: "",
@@ -1642,19 +1640,7 @@ useEffect(() => {
                 />
               </div>
 
-              <div>
-                <label className={`block text-sm font-semibold ${textSecondary} mb-2`}>Password</label>
-                <input
-                  type="password"
-                  name="password"
-                  value={newDoctor.password}
-                  onChange={handleChange}
-                  placeholder="Minimum 6 characters"
-                  className={`w-full px-4 py-2 border ${borderColor} rounded-lg focus:outline-none focus:ring-2 ${darkMode ? 'focus:ring-orange-400 bg-gray-700 text-gray-100' : 'focus:ring-orange-500 bg-white'}`}
-                  required
-                  minLength="6"
-                />
-              </div>
+              
 
               <div>
                 <label className={`block text-sm font-semibold ${textSecondary} mb-2`}>Phone</label>
