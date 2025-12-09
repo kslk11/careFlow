@@ -3,6 +3,7 @@ const Doctor = require('../models/Doctor');
 const Hospital = require('../models/Hospital');
 const Appointments = require('../models/Appointment')
 const generateToken = require('../utils/generateToken');
+const sendEmail = require('../utils/nodemailer')
 const generatePass = () => Math.floor(10000000 + Math.random() * 90000000).toString()
 exports.registerDoctor = async (req, res) => {
   try {
