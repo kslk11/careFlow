@@ -95,8 +95,11 @@ exports.createDoctorReview = async (req, res) => {
         const doctor = await Doctor.findById(doctorId);
         
         if (doctor) {
-            await doctor.updateRating(ratingData);
-        }
+    await Doctor.findByIdAndUpdate(doctorId, {
+        averageRating: ratingData.averageRating,
+        totalReviews: ratingData.totalReviews
+    });
+}
 
         console.log('Doctor review created successfully');
 
@@ -403,119 +406,126 @@ exports.createHospitalReview = async (req, res) => {
         const userId = req.user.id;
         const { hospitalId, referralId, rating, review, categories } = req.body;
 
-        console.log('Creating hospital review:', { userId, hospitalId, referralId, rating });
+        console.log("Creating hospital review:", { userId, hospitalId, referralId, rating });
 
-        // Validate required fields
+        // ---------------------- VALIDATIONS ----------------------
+
         if (!hospitalId || !rating) {
             return res.status(400).json({
                 success: false,
-                message: "Hospital ID and Rating are required"
+                message: "Hospital ID and Rating are required",
             });
         }
 
-        // At least referralId or appointmentId should be provided
+        // Must have referralId or appointmentId
         if (!referralId && !req.body.appointmentId) {
             return res.status(400).json({
                 success: false,
-                message: "Referral ID or Appointment ID is required"
+                message: "Referral ID or Appointment ID is required",
             });
         }
 
-        // Validate rating value
+        // Validate rating
         if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
             return res.status(400).json({
                 success: false,
-                message: "Rating must be a whole number between 1 and 5"
+                message: "Rating must be a whole number between 1 and 5",
             });
         }
 
-        // Validate category ratings if provided
+        // Validate category ratings
         if (categories) {
-            const categoryKeys = ['cleanliness', 'staff', 'facilities', 'waitTime'];
-            for (let key of categoryKeys) {
+            const keys = ["cleanliness", "staff", "facilities", "waitTime"];
+            for (let key of keys) {
                 if (categories[key] && (categories[key] < 1 || categories[key] > 5)) {
                     return res.status(400).json({
                         success: false,
-                        message: `${key} rating must be between 1 and 5`
+                        message: `${key} rating must be between 1 and 5`,
                     });
                 }
             }
         }
 
-        // If referralId is provided, verify it
+        // ---------------------- REFERRAL CHECK (IF EXISTS) ----------------------
+
         if (referralId) {
             const referral = await Referral.findById(referralId);
-            
+
             if (!referral) {
                 return res.status(404).json({
                     success: false,
-                    message: "Referral not found"
+                    message: "Referral not found",
                 });
             }
 
-            // Verify referral belongs to the user
-            if (referral.patientId?.toString() !== userId.toString() && 
-                referral.userId?.toString() !== userId.toString()) {
+            // Ensure referral belongs to the user
+            if (
+                referral.patientId?.toString() !== userId.toString() &&
+                referral.userId?.toString() !== userId.toString()
+            ) {
                 return res.status(403).json({
                     success: false,
-                    message: "You can only review your own referrals"
+                    message: "You can only review your own referrals",
                 });
             }
 
-            // Check if referral is completed
-            if (referral.status !== 'completed') {
+            if (referral.status !== "completed") {
                 return res.status(400).json({
                     success: false,
-                    message: "You can only review completed referrals"
+                    message: "You can only review completed referrals",
                 });
             }
         }
 
-        // Check if user has already reviewed this hospital
-        const existingReview = await HospitalReview.findOne({ 
-            userId: userId, 
-            hospitalId: hospitalId 
+        // ---------------------- CHECK ALREADY REVIEWED ----------------------
+
+        const existingReview = await HospitalReview.findOne({
+            userId,
+            hospitalId,
         });
 
         if (existingReview) {
             return res.status(400).json({
                 success: false,
                 message: "You have already reviewed this hospital",
-                existingReview: existingReview
+                existingReview,
             });
         }
 
-        // Create the review
+        // ---------------------- CREATE REVIEW ----------------------
+
         const hospitalReview = await HospitalReview.create({
             userId,
             hospitalId,
             referralId: referralId || null,
             appointmentId: req.body.appointmentId || null,
             rating,
-            review: review || '',
+            review: review || "",
             categories: categories || {},
             isVerified: true,
-            status: 'active'
+            status: "active",
         });
 
-        // Populate user details
-        await hospitalReview.populate('userId', 'name email');
+        await hospitalReview.populate("userId", "name email");
 
-        // Update hospital's average rating
+        // ---------------------- UPDATE HOSPITAL RATING ----------------------
+
         const ratingData = await HospitalReview.calculateAverageRating(hospitalId);
-        const hospital = await Hospital.findById(hospitalId);
-        
-        if (hospital) {
-            await hospital.updateRating(ratingData);
-        }
 
-        console.log('Hospital review created successfully');
+        await Hospital.findByIdAndUpdate(hospitalId, {
+            averageRating: ratingData.averageRating,
+            totalReviews: ratingData.totalReviews,
+        });
+
+        console.log("Hospital review created successfully");
+
+        // ---------------------- RESPONSE ----------------------
 
         res.status(201).json({
             success: true,
             message: "Review submitted successfully",
             data: hospitalReview,
-            hospitalRating: ratingData
+            hospitalRating: ratingData,
         });
 
     } catch (error) {
@@ -523,10 +533,11 @@ exports.createHospitalReview = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Server error while creating review",
-            error: error.message
+            error: error.message,
         });
     }
 };
+
 
 /**
  * @desc    Get all reviews for a specific hospital

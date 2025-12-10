@@ -80,10 +80,11 @@ const RatingModal = ({
       alert('Review submitted successfully!');
       onSuccess(response.data);
       handleClose();
-
+      
     } catch (error) {
       console.error('Error submitting review:', error);
       setError(error.response?.data?.message || 'Failed to submit review');
+      alert('Review not submit!');
     } finally {
       setLoading(false);
     }

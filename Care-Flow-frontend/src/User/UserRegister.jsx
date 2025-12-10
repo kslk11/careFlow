@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import axios from "axios";
 
 const UserRegister = () => {
@@ -15,10 +17,9 @@ const UserRegister = () => {
     medicalHistory: "",
     profileImage: "",
   });
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const navigate = useNavigate()
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     if (error) setError(""); // Clear error on input change
@@ -36,7 +37,7 @@ const UserRegister = () => {
       );
       alert("User Registered Successfully!");
       console.log(res.data);
-      
+      navigate('/')
       // Reset form after successful registration
       setForm({
         name: "",
@@ -50,6 +51,7 @@ const UserRegister = () => {
         bloodGroup: "",
         medicalHistory: "",
       });
+      
     } catch (error) {
       console.error(error);
       const errorMessage = error.response?.data?.message || "Registration Failed!";
