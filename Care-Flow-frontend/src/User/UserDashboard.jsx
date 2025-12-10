@@ -1395,7 +1395,7 @@ const fetchMyReviews = async () => {
           <button
             onClick={() => {
               setShowPaymentModal(false);
-              setSelectedBillForPayment(null);
+              setSelectedBill(null);
               setPaymentType('full');
               setPaymentAmount(0);
               setEmiOption(null);
@@ -1552,7 +1552,7 @@ const fetchMyReviews = async () => {
           onSuccess={(data) => {
             console.log('Payment successful:', data);
             setShowPaymentModal(false);
-            setSelectedBillForPayment(null);
+            setSelectedBill(null);
             setPaymentType('full');
             setPaymentAmount(0);
             setEmiOption(null);
