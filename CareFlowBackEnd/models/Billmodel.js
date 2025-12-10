@@ -222,7 +222,59 @@ const billSchema = new mongoose.Schema({
             default: 0
         }
     },
-
+paymentHistory: [{
+    amount: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+    paymentMethod: {
+        type: String,
+        enum: ['cash', 'card', 'upi', 'netbanking', 'wallet', 'razorpay', 'other'],
+        default: 'razorpay'
+    },
+    transactionId: {
+        type: String,
+        default: null
+    },
+    paymentDate: {
+        type: Date,
+        default: Date.now
+    },
+    paymentType: {
+        type: String,
+        enum: ['full', 'partial'],
+        default: 'full'
+    },
+    emiOption: {
+        type: Number,
+        enum: [null, 2, 3],
+        default: null
+    },
+    status: {
+        type: String,
+        enum: ['success', 'failed', 'pending'],
+        default: 'success'
+    },
+    // Razorpay specific fields
+    razorpayOrderId: {
+        type: String,
+        default: null
+    },
+    razorpayPaymentId: {
+        type: String,
+        default: null
+    },
+    razorpaySignature: {
+        type: String,
+        default: null
+    },
+    // Additional notes
+    notes: {
+        type: String,
+        default: ''
+    }
+}],
     // Timestamps
     billDate: {
         type: Date,
@@ -337,7 +389,50 @@ billSchema.methods.calculateBedCharges = function(pricePerDay, days) {
     
     return this;
 };
+billSchema.methods.addPaymentToHistory = function(paymentData) {
+    this.paymentHistory.push({
+        amount: paymentData.amount,
+        paymentMethod: paymentData.paymentMethod || 'razorpay',
+        transactionId: paymentData.transactionId,
+        paymentDate: paymentData.paymentDate || new Date(),
+        paymentType: paymentData.paymentType || 'full',
+        emiOption: paymentData.emiOption || null,
+        status: paymentData.status || 'success',
+        razorpayOrderId: paymentData.razorpayOrderId || null,
+        razorpayPaymentId: paymentData.razorpayPaymentId || null,
+        razorpaySignature: paymentData.razorpaySignature || null,
+        notes: paymentData.notes || ''
+    });
 
+    // Update total amount paid
+    this.amountPaid += paymentData.amount;
+    
+    // Update payment status
+    const remainingAmount = this.totalAmount - this.amountPaid;
+    if (remainingAmount <= 0) {
+        this.paymentStatus = 'paid';
+        this.paymentDate = new Date();
+        this.amountDue = 0;
+    } else if (this.amountPaid > 0) {
+        this.paymentStatus = 'partial';
+        this.amountDue = remainingAmount;
+    }
+
+    return this;
+};
+
+// Instance method to get total paid amount from history
+billSchema.methods.getTotalPaidFromHistory = function() {
+    return this.paymentHistory
+        .filter(payment => payment.status === 'success')
+        .reduce((total, payment) => total + payment.amount, 0);
+};
+
+// Instance method to get latest payment
+billSchema.methods.getLatestPayment = function() {
+    if (this.paymentHistory.length === 0) return null;
+    return this.paymentHistory[this.paymentHistory.length - 1];
+};
 const Bill = mongoose.model('Bill', billSchema);
 
 module.exports = Bill;

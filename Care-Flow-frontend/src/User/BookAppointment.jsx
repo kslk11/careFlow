@@ -34,7 +34,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
 
   const fetchDoctorDetails = async () => {
     try {
-      const res = await axios.get(`https://careflow-lsf5.onrender.com/api/doctor/getDoctor/${doctorId}`,config);
+      const res = await axios.get(`http://localhost:8000/api/doctor/getDoctor/${doctorId}`,config);
       setDoctor(res.data);
       console.log(res.data)
     } catch (error) {
@@ -46,7 +46,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
   const fetchUserDetails = async () => {
     try {
       const res = await axios.get(
-        `https://careflow-lsf5.onrender.com/api/user/getUser`, // ✅ Your endpoint is correct
+        `http://localhost:8000/api/user/getUser`, // ✅ Your endpoint is correct
         config
       );
       setUser(res.data);
@@ -85,7 +85,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
       }
 
       const res = await axios.post(
-        'https://careflow-lsf5.onrender.com/api/appointment/create',
+        'http://localhost:8000/api/appointment/create',
         appointmentData,
         config
       );

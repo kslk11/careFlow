@@ -14,7 +14,7 @@ const HospitalLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("https://careflow-lsf5.onrender.com/api/hospital/login", form);
+      const res = await axios.post("http://localhost:8000/api/hospital/login", form);
       setMessage(res.data.message);
       // Save token in localStorage for further API requests
       localStorage.setItem("hospitalToken", res.data.token);

@@ -191,7 +191,7 @@ const handleRecordPayment = async (e) => {
   setLoading(true);
   try {
     await axios.post(
-      `https://careflow-lsf5.onrender.com/api/bill/payment/${selectedBillForPayment._id}`,
+      `http://localhost:8000/api/bill/payment/${selectedBillForPayment._id}`,
       paymentForm,
       config
     );
@@ -219,7 +219,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/department/get");
+      const res = await axios.get("http://localhost:8000/api/department/get");
       setAvailableDepartments(res.data);
       setDepartments(res.data);
     } catch (error) {
@@ -229,7 +229,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchDoctors = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/getdocs", config);
+      const res = await axios.get("http://localhost:8000/api/hospital/getdocs", config);
       setDoctors(res.data);
     } catch (err) {
       console.log("Error fetching doctors:", err);
@@ -238,7 +238,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/getProfile", config);
+      const res = await axios.get("http://localhost:8000/api/hospital/getProfile", config);
       setProfile(res.data);
       setProfileForm({
         name: res.data.name || "",
@@ -254,7 +254,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchOperations = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/operation/hospital", config);
+      const res = await axios.get("http://localhost:8000/api/operation/hospital", config);
       setOperations(res.data);
     } catch (error) {
       console.error("Error fetching operations:", error);
@@ -263,7 +263,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchReferrals = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/refer/hospital", config);
+      const res = await axios.get("http://localhost:8000/api/refer/hospital", config);
       setReferrals(res.data);
     } catch (error) {
       console.error("Error fetching referrals:", error);
@@ -272,7 +272,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchBeds = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/bed/hospital", config);
+      const res = await axios.get("http://localhost:8000/api/bed/hospital", config);
       setBeds(res.data);
     } catch (error) {
       console.error("Error fetching beds:", error);
@@ -280,7 +280,7 @@ const handleRecordPayment = async (e) => {
   };
  const fetchBills = async () => {
   try {
-    const res = await axios.get("https://careflow-lsf5.onrender.com/api/bill/hospital", config);
+    const res = await axios.get("http://localhost:8000/api/bill/hospital", config);
     
     // Your backend returns: { success: true, data: [...], summary: {...} }
     const billsData = res.data.data || []; // Get the 'data' property
@@ -330,7 +330,7 @@ const handleRecordPayment = async (e) => {
       }
 
       const res = await axios.get(
-        `https://careflow-lsf5.onrender.com/api/bed/hospital?isAvailable=true&status=Available${bedType ? `&bedType=${bedType}` : ''}`,
+        `http://localhost:8000/api/bed/hospital?isAvailable=true&status=Available${bedType ? `&bedType=${bedType}` : ''}`,
         config
       );
       setAvailableBedsForReferral(res.data);
@@ -403,7 +403,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.post(
-        "https://careflow-lsf5.onrender.com/api/doctor/register",
+        "http://localhost:8000/api/doctor/register",
         { ...newDoctor, hospitalId: hospitalInfo.userId },
         config
       );
@@ -443,7 +443,7 @@ const handleRecordPayment = async (e) => {
 
     try {
       await axios.post(
-        "https://careflow-lsf5.onrender.com/api/operation/create",
+        "http://localhost:8000/api/operation/create",
         operationForm,
         config
       );
@@ -478,7 +478,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.put(
-        `https://careflow-lsf5.onrender.com/api/operation/update/${editingOperation._id}`,
+        `http://localhost:8000/api/operation/update/${editingOperation._id}`,
         operationForm,
         config
       );
@@ -500,7 +500,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.delete(
-        `https://careflow-lsf5.onrender.com/api/operation/${operationId}`,
+        `http://localhost:8000/api/operation/${operationId}`,
         config
       );
       alert("Operation deleted successfully!");
@@ -531,7 +531,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.post(
-        "https://careflow-lsf5.onrender.com/api/bed/create",
+        "http://localhost:8000/api/bed/create",
         bedForm,
         config
       );
@@ -569,7 +569,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.put(
-        `https://careflow-lsf5.onrender.com/api/bed/update/${editingBed._id}`,
+        `http://localhost:8000/api/bed/update/${editingBed._id}`,
         bedForm,
         config
       );
@@ -590,7 +590,7 @@ const handleRecordPayment = async (e) => {
 
     setLoading(true);
     try {
-      await axios.delete(`https://careflow-lsf5.onrender.com/api/bed/${bedId}`, config);
+      await axios.delete(`http://localhost:8000/api/bed/${bedId}`, config);
       alert("Bed deleted successfully!");
       fetchBeds();
     } catch (error) {
@@ -607,7 +607,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/bed/release/${bedId}`,
+        `http://localhost:8000/api/bed/release/${bedId}`,
         {},
         config
       );
@@ -760,7 +760,7 @@ const handleCreateBill = async (e) => {
   try {
      console.log("📤 Bill Data Being Sent:", JSON.stringify(billData, null, 2));
     await axios.post(
-      "https://careflow-lsf5.onrender.com/api/bill/create",
+      "http://localhost:8000/api/bill/create",
       billForm,
       config
     );
@@ -806,7 +806,7 @@ const handleUpdateBill = async (e) => {
   setLoading(true);
   try {
     await axios.put(
-      `https://careflow-lsf5.onrender.com/api/bill/${editingBill._id}`,
+      `http://localhost:8000/api/bill/${editingBill._id}`,
       billForm,
       config
     );
@@ -827,7 +827,7 @@ const handleDeleteBill = async (billId) => {
 
   setLoading(true);
   try {
-    await axios.delete(`https://careflow-lsf5.onrender.com/api/bill/${billId}`, config);
+    await axios.delete(`http://localhost:8000/api/bill/${billId}`, config);
     alert("Bill deleted successfully!");
     fetchBills();
   } catch (error) {
@@ -843,7 +843,7 @@ const handleGenerateBillFromReferral = async (referralId) => {
 
   setLoading(true);
   try {
-    await axios.post(`https://careflow-lsf5.onrender.com/api/bill/create-from-referral/${referralId}`,{});
+    await axios.post(`http://localhost:8000/api/bill/create-from-referral/${referralId}`,{});
     alert("Bill generated successfully!");
     fetchBills();
     fetchReferrals(); // Refresh referrals to update status
@@ -943,7 +943,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     };
 
     const response = await axios.post(
-      "https://careflow-lsf5.onrender.com/api/bill/create",
+      "http://localhost:8000/api/bill/create",
       billData,
       config
     );
@@ -972,7 +972,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     setLoading(true);
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/refer/accept/${referralId}`,
+        `http://localhost:8000/api/refer/accept/${referralId}`,
         { status: "accepted" },
         config
       );
@@ -999,7 +999,7 @@ const generateBillFromCompletedReferral = async (referral) => {
       const totalPrice = (selectedReferralForBed.estimatedPrice || 0) + bedCharges;
 
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/refer/assign-bed/${selectedReferralForBed._id}`,
+        `http://localhost:8000/api/refer/assign-bed/${selectedReferralForBed._id}`,
         {
           ...assignBedForm,
           totalPrice,
@@ -1030,7 +1030,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     setLoading(true);
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/refer/reject/${referralId}`,
+        `http://localhost:8000/api/refer/reject/${referralId}`,
         { rejectionReason },
         config
       );
@@ -1052,7 +1052,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     // Step 1: Mark referral as completed
     console.log("🔄 Step 1: Completing referral...");
     await axios.patch(
-      `https://careflow-lsf5.onrender.com/api/refer/complete/${referralId}`,
+      `http://localhost:8000/api/refer/complete/${referralId}`,
       {},
       config
     );
@@ -1122,7 +1122,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     setLoading(true);
     try {
       const res = await axios.put(
-        "https://careflow-lsf5.onrender.com/api/hospital/profile",
+        "http://localhost:8000/api/hospital/profile",
         profileForm,
         config
       );
@@ -1149,7 +1149,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     setLoading(true);
     try {
       await axios.put(
-        "https://careflow-lsf5.onrender.com/api/hospital/resetpassword",
+        "http://localhost:8000/api/hospital/resetpassword",
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
@@ -1273,7 +1273,7 @@ const [paymentForm, setPaymentForm] = useState({
 const [billsOfHospital,SetbillsOfHospital] = useState({})
 
 const fetchAllbills = async()=>{
-  const res = await axios.get('https://careflow-lsf5.onrender.com/api/bill/getAll/bill',config)
+  const res = await axios.get('http://localhost:8000/api/bill/getAll/bill',config)
   SetbillsOfHospital(res.data)
 }
 // ==================== FILTER EFFECT ====================

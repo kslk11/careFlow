@@ -12,6 +12,7 @@ import RatingDisplay from '../components/reviews/RatingDisplay';
 // Add these new imports for chatbot
 import ChatBot from '../components/chatbot/ChatBot';
 import ChatBotButton from '../components/chatbot/ChatBotButton';
+import RazorpayPayment from '../components/payment/RazorpayPayment';
 // ==================== HELPER FUNCTIONS ====================
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
@@ -251,7 +252,7 @@ const toggleChatBot = () => {
   // ==================== FETCH FUNCTIONS ====================
   const fetchHospitals = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/approved");
+      const res = await axios.get("http://localhost:8000/api/hospital/approved");
       setHospitals(res.data);
     } catch (error) {
       console.error("Error fetching hospitals:", error);
@@ -262,7 +263,7 @@ const toggleChatBot = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `https://careflow-lsf5.onrender.com/api/hospital/getdoctorsparams/${hospitalId}`
+        `http://localhost:8000/api/hospital/getdoctorsparams/${hospitalId}`
       );
       setHospitalDoctors(res.data);
       setSelectedHospital(hospitals.find((h) => h._id === hospitalId));
@@ -277,7 +278,7 @@ const toggleChatBot = () => {
 const fetchMyReviews = async () => {
   setLoadingReviews(true);
   try {
-    const response = await axios.get('https://careflow-lsf5.onrender.com/api/review/user/mine', config);
+    const response = await axios.get('http://localhost:8000/api/review/user/mine', config);
     setMyReviews(response.data.data || { doctorReviews: [], hospitalReviews: [] });
   } catch (error) {
     console.error('Error fetching my reviews:', error);
@@ -288,7 +289,7 @@ const fetchMyReviews = async () => {
 };
   const fetchProfile = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/user/getUser", config);
+      const res = await axios.get("http://localhost:8000/api/user/getUser", config);
       setProfile(res.data);
       setProfileForm({
         name: res.data.name || "",
@@ -306,7 +307,7 @@ const fetchMyReviews = async () => {
 
   const fetchAppointments = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/appointment/user", config);
+      const res = await axios.get("http://localhost:8000/api/appointment/user", config);
       setAppointments(res.data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -315,7 +316,7 @@ const fetchMyReviews = async () => {
 
   const fetchReferrals = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/refer/user", config);
+      const res = await axios.get("http://localhost:8000/api/refer/user", config);
       setReferrals(res.data);
     } catch (error) {
       console.error("Error fetching referrals:", error);
@@ -325,7 +326,7 @@ const fetchMyReviews = async () => {
   // NEW: Fetch Bills Function
   const fetchBills = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/bill/user", config);
+      const res = await axios.get("http://localhost:8000/api/bill/user", config);
       console.log("hello")
       setBills(res.data);
     } catch (error) {
@@ -338,7 +339,7 @@ const fetchMyReviews = async () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.put("https://careflow-lsf5.onrender.com/api/user/profile", profileForm, config);
+      const res = await axios.put("http://localhost:8000/api/user/profile", profileForm, config);
       setProfile(res.data);
       localStorage.setItem("Userinfo", JSON.stringify({ ...userInfo, user: res.data }));
       alert("Profile updated successfully!");
@@ -360,7 +361,7 @@ const fetchMyReviews = async () => {
     setLoading(true);
     try {
       await axios.put(
-        "https://careflow-lsf5.onrender.com/api/user/resetpassword",
+        "http://localhost:8000/api/user/resetpassword",
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
@@ -395,7 +396,7 @@ const fetchMyReviews = async () => {
     }
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/appointment/cancel/${appointmentId}`,
+        `http://localhost:8000/api/appointment/cancel/${appointmentId}`,
         {},
         config
       );
@@ -457,7 +458,7 @@ const fetchMyReviews = async () => {
       };
 
       await axios.post(
-        `https://careflow-lsf5.onrender.com/api/bill/payment/${selectedBill._id}`,
+        `http://localhost:8000/api/bill/payment/${selectedBill._id}`,
         paymentData,
         config
       );
@@ -1380,180 +1381,206 @@ const fetchMyReviews = async () => {
       </div>
 
       {/* Payment Modal */}
-      {showPaymentModal && selectedBill && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`${bgSecondary} rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto`}>
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-500 to-emerald-600">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-bold text-white">Complete Payment</h3>
-                  <p className="text-green-100 text-sm">Secure payment processing</p>
-                </div>
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="text-white hover:text-gray-200"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+      {/* Payment Modal */}
+{showPaymentModal && selectedBill && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className={`${bgSecondary} rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto`}>
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-cyan-500 to-blue-600">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-2xl font-bold text-white">💳 Payment</h3>
+            <p className="text-cyan-100 text-sm mt-1">Bill #{selectedBill.billNumber}</p>
+          </div>
+          <button
+            onClick={() => {
+              setShowPaymentModal(false);
+              setSelectedBillForPayment(null);
+              setPaymentType('full');
+              setPaymentAmount(0);
+              setEmiOption(null);
+            }}
+            className="text-white hover:text-gray-200 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
-            <div className="p-6 space-y-6">
-              {/* Bill Summary */}
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900 dark:to-cyan-900 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
-                <h4 className="font-bold text-gray-800 dark:text-gray-200 mb-3">Bill Summary</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Bill Number:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedBill.billNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Hospital:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">{selectedBill.hospitalId?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Total Amount:</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">₹{(selectedBill.totalAmount || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Already Paid:</span>
-                    <span className="font-semibold text-green-600">₹{(selectedBill.amountPaid || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between pt-2 border-t border-blue-200 dark:border-blue-700">
-                    <span className="text-gray-800 dark:text-gray-200 font-bold">Remaining Amount:</span>
-                    <span className="text-xl font-bold text-red-600">₹{((selectedBill.totalAmount || 0) - (selectedBill.amountPaid || 0)).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Type Selection */}
-              <div>
-                <label className={`block text-sm font-bold ${textPrimary} mb-3`}>Select Payment Type</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => handlePaymentTypeChange("full")}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      paymentType === "full"
-                        ? "border-green-600 bg-green-50 dark:bg-green-900"
-                        : "border-gray-200 dark:border-gray-700"
-                    }`}
-                  >
-                    <div className="text-center">
-                      <svg className="w-8 h-8 mx-auto mb-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className={`font-bold ${textPrimary}`}>Full Payment</p>
-                      <p className="text-sm text-green-600 font-semibold mt-1">
-                        ₹{((selectedBill.totalAmount || 0) - (selectedBill.amountPaid || 0)).toLocaleString()}
-                      </p>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handlePaymentTypeChange("partial")}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      paymentType === "partial"
-                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900"
-                        : "border-gray-200 dark:border-gray-700"
-                    }`}
-                  >
-                    <div className="text-center">
-                      <svg className="w-8 h-8 mx-auto mb-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className={`font-bold ${textPrimary}`}>Partial (EMI)</p>
-                      <p className="text-sm text-blue-600 font-semibold mt-1">Pay in installments</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* EMI Options */}
-              {paymentType === "partial" && (
-                <div>
-                  <label className={`block text-sm font-bold ${textPrimary} mb-3`}>Choose EMI Plan</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      onClick={() => handleEmiChange(2)}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        emiOption === 2
-                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900"
-                          : "border-gray-200 dark:border-gray-700"
-                      }`}
-                    >
-                      <p className={`font-bold ${textPrimary} text-lg`}>2 EMI</p>
-                      <p className="text-sm text-blue-600 font-semibold mt-1">
-                        ₹{(((selectedBill.totalAmount || 0) - (selectedBill.amountPaid || 0)) / 2).toLocaleString()} / month
-                      </p>
-                    </button>
-
-                    <button
-                      onClick={() => handleEmiChange(3)}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        emiOption === 3
-                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900"
-                          : "border-gray-200 dark:border-gray-700"
-                      }`}
-                    >
-                      <p className={`font-bold ${textPrimary} text-lg`}>3 EMI</p>
-                      <p className="text-sm text-blue-600 font-semibold mt-1">
-                        ₹{(((selectedBill.totalAmount || 0) - (selectedBill.amountPaid || 0)) / 3).toLocaleString()} / month
-                      </p>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Payment Method */}
-              <div>
-                <label className={`block text-sm font-bold ${textPrimary} mb-3`}>Payment Method</label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className={`w-full px-4 py-3 border ${borderColor} rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}
-                >
-                  <option value="card">💳 Credit/Debit Card</option>
-                  <option value="upi">📱 UPI</option>
-                  <option value="netbanking">🏦 Net Banking</option>
-                  <option value="cash">💵 Cash</option>
-                </select>
-              </div>
-
-              {/* Payment Summary */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                <div className="flex justify-between items-center">
-                  <span className={`font-bold ${textPrimary}`}>You will pay now:</span>
-                  <span className="text-2xl font-bold text-green-600">₹{paymentAmount.toLocaleString()}</span>
-                </div>
-                {paymentType === "partial" && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                    Remaining amount will be paid in {emiOption - 1} installment{emiOption > 2 ? 's' : ''}
-                  </p>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-3 rounded-xl font-semibold transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleProcessPayment}
-                  disabled={processingPayment}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {processingPayment ? "Processing..." : `Pay ₹${paymentAmount.toLocaleString()}`}
-                </button>
-              </div>
-            </div>
+      {/* Content */}
+      <div className="p-6 space-y-6">
+        {/* Bill Summary */}
+        <div className={`p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm ${textSecondary}`}>Hospital:</span>
+            <span className={`font-semibold ${textPrimary}`}>{selectedBill.hospitalId?.name}</span>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm ${textSecondary}`}>Patient:</span>
+            <span className={`font-semibold ${textPrimary}`}>{selectedBill.patientName}</span>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm ${textSecondary}`}>Total Amount:</span>
+            <span className={`font-bold text-lg ${textPrimary}`}>₹{selectedBill.totalAmount?.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm ${textSecondary}`}>Amount Paid:</span>
+            <span className={`font-semibold text-green-600`}>₹{selectedBill.amountPaid?.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t border-gray-300 dark:border-gray-600">
+            <span className={`text-sm font-bold ${textSecondary}`}>Amount Due:</span>
+            <span className={`font-bold text-xl text-red-600`}>₹{(selectedBill.totalAmount - selectedBill.amountPaid)?.toLocaleString()}</span>
           </div>
         </div>
-      )}
+
+        {/* Payment Type Selection */}
+        <div>
+          <label className={`block text-sm font-bold ${textPrimary} mb-3`}>Payment Type</label>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => {
+                setPaymentType('full');
+                setPaymentAmount(selectedBill.totalAmount - selectedBill.amountPaid);
+                setEmiOption(null);
+              }}
+              className={`p-4 rounded-xl border-2 transition-all ${
+                paymentType === 'full'
+                  ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-cyan-300'
+              }`}
+            >
+              <div className="text-center">
+                <div className="text-2xl mb-2">💰</div>
+                <div className={`font-semibold ${textPrimary}`}>Full Payment</div>
+                <div className={`text-sm ${textSecondary} mt-1`}>
+                  Pay ₹{(selectedBill.totalAmount - selectedBill.amountPaid)?.toLocaleString()}
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setPaymentType('partial');
+                setEmiOption(2);
+                setPaymentAmount((selectedBill.totalAmount - selectedBill.amountPaid) / 2);
+              }}
+              className={`p-4 rounded-xl border-2 transition-all ${
+                paymentType === 'partial'
+                  ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-cyan-300'
+              }`}
+            >
+              <div className="text-center">
+                <div className="text-2xl mb-2">📊</div>
+                <div className={`font-semibold ${textPrimary}`}>Partial (EMI)</div>
+                <div className={`text-sm ${textSecondary} mt-1`}>Pay in installments</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* EMI Options (if partial payment) */}
+        {paymentType === 'partial' && (
+          <div>
+            <label className={`block text-sm font-bold ${textPrimary} mb-3`}>EMI Options</label>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => {
+                  setEmiOption(2);
+                  setPaymentAmount((selectedBill.totalAmount - selectedBill.amountPaid) / 2);
+                }}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  emiOption === 2
+                    ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                <div className="text-center">
+                  <div className={`font-semibold ${textPrimary}`}>2 Installments</div>
+                  <div className={`text-sm ${textSecondary} mt-1`}>
+                    ₹{((selectedBill.totalAmount - selectedBill.amountPaid) / 2)?.toLocaleString()} each
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setEmiOption(3);
+                  setPaymentAmount((selectedBill.totalAmount - selectedBill.amountPaid) / 3);
+                }}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  emiOption === 3
+                    ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                <div className="text-center">
+                  <div className={`font-semibold ${textPrimary}`}>3 Installments</div>
+                  <div className={`text-sm ${textSecondary} mt-1`}>
+                    ₹{((selectedBill.totalAmount - selectedBill.amountPaid) / 3)?.toLocaleString()} each
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Summary */}
+        <div className={`p-4 ${darkMode ? 'bg-gray-700' : 'bg-blue-50'} rounded-xl`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm ${textSecondary}`}>Current Payment:</span>
+            <span className={`font-bold text-lg text-cyan-600`}>₹{paymentAmount?.toLocaleString()}</span>
+          </div>
+          {paymentType === 'partial' && (
+            <div className="flex items-center justify-between">
+              <span className={`text-sm ${textSecondary}`}>Remaining After Payment:</span>
+              <span className={`font-semibold ${textSecondary}`}>
+                ₹{((selectedBill.totalAmount - selectedBill.amountPaid) - paymentAmount)?.toLocaleString()}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ✅ RAZORPAY PAYMENT BUTTON - REPLACE OLD BUTTON */}
+        <RazorpayPayment
+          bill={selectedBill}
+          amount={paymentAmount}
+          paymentType={paymentType}
+          emiOption={emiOption}
+          onSuccess={(data) => {
+            console.log('Payment successful:', data);
+            setShowPaymentModal(false);
+            setSelectedBillForPayment(null);
+            setPaymentType('full');
+            setPaymentAmount(0);
+            setEmiOption(null);
+            fetchBills(); // Refresh bills list
+          }}
+          onFailure={(error) => {
+            console.error('Payment failed:', error);
+          }}
+          buttonText={`Pay ₹${paymentAmount?.toLocaleString()}`}
+          darkMode={darkMode}
+        />
+
+        {/* Secured by Razorpay */}
+        <div className="text-center">
+          <p className={`text-xs ${textSecondary}`}>
+            🔒 Secured by Razorpay • All payment methods supported
+          </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <span className="text-xs text-gray-500">💳 Cards</span>
+            <span className="text-xs text-gray-500">📱 UPI</span>
+            <span className="text-xs text-gray-500">🏦 NetBanking</span>
+            <span className="text-xs text-gray-500">💰 Wallets</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 // ==================== RENDER MY REVIEWS ====================

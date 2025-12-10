@@ -56,7 +56,7 @@ const RatingModal = ({
       let payload = {};
 
       if (type === 'doctor') {
-        endpoint = 'https://careflow-lsf5.onrender.com/api/review/doctor';
+        endpoint = 'http://localhost:8000/api/review/doctor';
         payload = {
           doctorId: entity._id,
           hospitalId: hospitalId,
@@ -65,7 +65,7 @@ const RatingModal = ({
           review: review
         };
       } else {
-        endpoint = 'https://careflow-lsf5.onrender.com/api/review/hospital';
+        endpoint = 'http://localhost:8000/api/review/hospital';
         payload = {
           hospitalId: entity._id,
           referralId: referralId,

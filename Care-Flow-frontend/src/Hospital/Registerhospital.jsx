@@ -22,7 +22,7 @@ const RegisterHospital = () => {
   // Fetch all departments from backend
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/department/get");
+      const res = await axios.get("http://localhost:8000/api/department/get");
       setDepartmentsList(res.data);
     } catch (error) {
       console.error("Error fetching departments:", error.response?.data || error);
@@ -51,7 +51,7 @@ const RegisterHospital = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("https://careflow-lsf5.onrender.com/api/hospital/register", {
+      const res = await axios.post("http://localhost:8000/api/hospital/register", {
         ...form,
         establishedYear: Number(form.establishedYear),
       });
