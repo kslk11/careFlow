@@ -121,7 +121,7 @@ exports.registerDoctor = async (req, res) => {
       subject: "Your Doctor Account Credentials",
       html
     });
-
+console.log("mail Sent to: ",email)
     // Response
     res.status(201).json({
       _id: doctor._id,
