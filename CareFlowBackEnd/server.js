@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose')
 const cors = require('cors');
+const { initializeCronJobs } = require('./cron/cronJobs');
 const adminRoutes = require('./routers/adminRoutes');
 const departmentRoutes = require('./routers/departmentRoutes');
 const hospitalRoutes = require('./routers/hospitalRoutes');
@@ -18,7 +19,9 @@ const reviewRoutes = require('./routers/reviewRoutes');
 
 dotenv.config();
 mongoose.connect(process.env.MONGO_URI)
-.then(()=>console.log("Db Connected"))
+.then(()=>{console.log("Db Connected")
+  initializeCronJobs();
+})
 .catch(()=>console.log("Db not Connected"))
 
 const app = express();

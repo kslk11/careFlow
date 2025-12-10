@@ -100,9 +100,7 @@ const ChatBotButton = ({ onClick, isOpen, darkMode = false, unreadCount = 0 }) =
               onClick={() => {}}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+             
             </button>
           </div>
           <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white dark:bg-gray-800 transform rotate-45 border-r border-b border-gray-200 dark:border-gray-700"></div>

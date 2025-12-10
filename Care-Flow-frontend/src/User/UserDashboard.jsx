@@ -185,13 +185,15 @@ const getChatBotUserData = () => {
     name: profile?.name || 'there',
     appointments: appointments || [],
     bills: bills || [],
-    hospitals: hospitals || [],
-doctors: appointments?.doctorId?.name ?? [],
+    hospitals: hospitals|| [],
+    doctors: appointments?.doctorId ?? [],
     referrals: referrals || [],
     profile: profile || {}
   };
 };
-// console.log(appointments)
+// console.log(bills)
+// console.log(hospitals)
+// console.log(referrals)
 // Handle chatbot actions
 const handleChatBotAction = (actionType, actionData) => {
   console.log('ChatBot Action:', actionType, actionData);

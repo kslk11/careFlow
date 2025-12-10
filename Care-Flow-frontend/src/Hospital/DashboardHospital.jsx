@@ -2386,7 +2386,14 @@ useEffect(() => {
           </button>
         </>
       )}
-      
+      {referral.status === "accepted" && referral.bedId && (
+        <button 
+          onClick={() => handleCompleteReferral(referral._id)}
+          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium"
+        >
+          ✅ Complete & Generate Bill
+        </button>
+      )}
       {referral.status === "accepted" && !referral.bedId && (
         <button 
           onClick={() => openAssignBedModal(referral)}
@@ -2396,14 +2403,7 @@ useEffect(() => {
         </button>
       )}
       
-      {referral.status === "accepted" && referral.bedId && (
-        <button 
-          onClick={() => handleCompleteReferral(referral._id)}
-          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium"
-        >
-          ✅ Complete & Generate Bill
-        </button>
-      )}
+      
     </div>
 
     {/* Bill Status Indicator */}

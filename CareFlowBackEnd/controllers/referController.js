@@ -581,87 +581,88 @@ exports.assignBedToReferral = async (req, res) => {
         }
 
         // Find the referral
-        const referral = await Refer.findById(referralId);
-        
+        const referral = await Refer.findById(referralId).populate('userId');
+        console.log(referral.status)
         if (!referral) {
-            return res.status(404).json({
-                success: false,
-                message: "Referral not found"
-            });
+          return res.status(404).json({
+            success: false,
+            message: "Referral not found"
+          });
         }
-
+        
         // Check if referral is in accepted status
         if (referral.status !== 'accepted') {
-            return res.status(400).json({
-                success: false,
-                message: "Referral must be in 'accepted' status to assign bed"
-            });
+          return res.status(400).json({
+            success: false,
+            message: "Referral must be in 'accepted' status to assign bed"
+          });
         }
-
+        
         // Verify the bed exists and is available
         const bed = await Bed.findById(bedId);
         
         if (!bed) {
-            return res.status(404).json({
-                success: false,
-                message: "Bed not found"
-            });
+          return res.status(404).json({
+            success: false,
+            message: "Bed not found"
+          });
         }
-
+        
         if (!bed.isAvailable || bed.status !== 'Available') {
-            return res.status(400).json({
-                success: false,
-                message: "Bed is not available"
+          return res.status(400).json({
+            success: false,
+            message: "Bed is not available"
             });
-        }
+          }
 
-        // Verify bed belongs to the same hospital
-        if (bed.hospitalId.toString() !== referral.hospitalId.toString()) {
+          // Verify bed belongs to the same hospital
+          if (bed.hospitalId.toString() !== referral.hospitalId.toString()) {
             return res.status(403).json({
-                success: false,
-                message: "Bed does not belong to this hospital"
+              success: false,
+              message: "Bed does not belong to this hospital"
             });
-        }
-
-        // Verify doctor if provided
-        if (assignedDoctorId) {
+          }
+          
+          // Verify doctor if provided
+          if (assignedDoctorId) {
             const doctor = await Doctor.findById(assignedDoctorId);
             
             if (!doctor) {
                 return res.status(404).json({
-                    success: false,
-                    message: "Doctor not found"
+                  success: false,
+                  message: "Doctor not found"
                 });
-            }
-
+              }
+              
             if (doctor.hospitalId.toString() !== referral.hospitalId.toString()) {
-                return res.status(403).json({
-                    success: false,
-                    message: "Doctor does not belong to this hospital"
-                });
-            }
-        }
-
-        // Validate appointment date is not in the past
-        const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
-        if (appointmentDateTime < new Date()) {
-            return res.status(400).json({
+              return res.status(403).json({
                 success: false,
-                message: "Appointment date and time cannot be in the past"
+                    message: "Doctor does not belong to this hospital"
+                  });
+                }
+              }
+              
+              // Validate appointment date is not in the past
+              const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
+              if (appointmentDateTime < new Date()) {
+                return res.status(400).json({
+                  success: false,
+                  message: "Appointment date and time cannot be in the past"
             });
-        }
-
-        // Update the bed status to occupied
-        bed.isAvailable = false;
-        bed.status = 'Occupied';
-        bed.currentPatient = {
+          }
+          
+          // Update the bed status to occupied
+          bed.isAvailable = false;
+          bed.status = 'Occupied';
+          bed.currentPatient = {
             patientName: referral.patientName,
-            patientPhone: referral.patientPhone,
-            admissionDate: new Date(),
-            referralId: referral._id
+          patientPhone: referral.patientPhone,
+          admissionDate: new Date(),
+          referralId: referral._id
         };
         await bed.save();
-
+        referral.status = "completed"
+        
         // Update the referral with bed assignment
         referral.assignedBedId = bedId;
         referral.appointmentDate = appointmentDate;
