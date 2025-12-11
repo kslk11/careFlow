@@ -92,8 +92,8 @@ const appointmentSchema = new mongoose.Schema({
   // Consultation Details
   consultationFee: {
     type: Number,
-    default: 0,
-    min: 0
+    default: 500,
+    min: 100
   },
   
   paymentStatus: {

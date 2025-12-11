@@ -269,7 +269,7 @@ const handleRecordPayment = async (e) => {
       console.error("Error fetching referrals:", error);
     }
   };
-
+// console.log(referrals)
   const fetchBeds = async () => {
     try {
       const res = await axios.get("https://careflow-lsf5.onrender.com/api/bed/hospital", config);
@@ -1289,7 +1289,7 @@ useEffect(() => {
     setFilteredBills(bills.filter(b => b.paymentStatus === billStatusFilter));
   }
 }, [bills, billStatusFilter]);
-
+// console.log(filteredReferrals)
 
   // ==================== RENDER INCOME DASHBOARD ====================
 
@@ -2457,28 +2457,34 @@ useEffect(() => {
         )}
 
         {/* Total Price */}
-        <div className="flex items-center justify-between">
-          <span className={`text-sm font-bold ${textSecondary}`}>Total:</span>
-          <span className={`font-bold text-lg ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-            ₹{(() => {
-              let total = 0;
-              
-              // Add operation price
-              if (referral.operationId?.price) {
-                total += referral.operationId.price;
-              }
-              
-              // Add bed charges if assigned
-              if ((referral.assignedBedId || referral.bedId) && referral.assignedDate && referral.dischargeDate) {
-                const days = Math.ceil((new Date(referral.dischargeDate) - new Date(referral.assignedDate)) / (1000 * 60 * 60 * 24)) || 1;
-                const pricePerDay = referral.bedId?.pricePerDay || 0;
-                total += (days * pricePerDay);
-              }
-              
-              return total.toLocaleString();
-            })()}
-          </span>
-        </div>
+       <div className="flex items-center justify-between">
+  <span className={`text-sm font-bold ${textSecondary}`}>Total:</span>
+
+  <span className={`font-bold text-lg ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+    ₹{(() => {
+      let total = 0;
+
+      // Calculate number of days
+      let days = 1;
+      if (referral.assignedDate && referral.dischargeDate) {
+        days = Math.ceil(
+          (new Date(referral.dischargeDate) - new Date(referral.assignedDate)) /
+          (1000 * 60 * 60 * 24)
+        );
+      }
+
+      // Operation charge PER DAY
+      const operationPerDay = referral.operationId?.price || 0;
+      total += days * operationPerDay;
+
+      // Bed charge PER DAY
+      const bedPerDay = referral.assignedBedId?.pricePerDay || referral.bedId?.pricePerDay || 0;
+      total += days * bedPerDay;
+
+      return total.toLocaleString();
+    })()}
+  </span>
+</div>
 
         {/* Tax Note */}
         <p className={`text-xs ${textSecondary} mt-1 text-right italic`}>

@@ -18,7 +18,6 @@ const referSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  
   prescriptionId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Prescription'

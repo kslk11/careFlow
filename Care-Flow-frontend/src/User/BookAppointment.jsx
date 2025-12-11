@@ -62,7 +62,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
     });
   };
 
- const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
   // Validate form
@@ -71,20 +71,12 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
     return;
   }
 
-  if (!isSelf) {
-    if (!formData.familyMemberName || !formData.familyMemberAge || !formData.familyMemberGender) {
-      alert('Please fill all family member details');
-      return;
-    }
-  }
-
   setLoading(true);
 
   try {
-    console.log('🚀 Step 1: Creating appointment with payment...');
+    console.log('🚀 Creating appointment order...');
 
-    // Prepare appointment data
-    const appointmentData = {
+     const appointmentData = {
       doctorId,
       appointmentDate: formData.appointmentDate,
       appointmentTime: formData.appointmentTime,
@@ -92,18 +84,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
       isSelf
     };
 
-    // Add family member details if not for self
-    if (!isSelf) {
-      appointmentData.familyMemberName = formData.familyMemberName;
-      appointmentData.familyMemberAge = parseInt(formData.familyMemberAge);
-      appointmentData.familyMemberGender = formData.familyMemberGender;
-      appointmentData.familyMemberRelation = formData.familyMemberRelation;
-      appointmentData.familyMemberAddress = formData.familyMemberAddress;
-    }
-
-    // Step 1: Create payment order (this also creates the appointment)
-    console.log('Creating payment order with data:', appointmentData);
-    
+    // Create order
     const orderResponse = await axios.post(
       'https://careflow-lsf5.onrender.com/api/appointment-payment/create-order',
       {
@@ -116,54 +97,51 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
       config
     );
 
-    console.log('✅ Step 2: Order created:', orderResponse.data);
+    console.log('✅ Order created:', orderResponse.data);
 
     const { appointmentId, orderId, amount, currency, keyId, doctorName, consultationFee } = orderResponse.data.data;
 
-    // Step 2: Check if Razorpay is loaded
+    // ✅ CHECK RAZORPAY LOADED
     if (!window.Razorpay) {
-      alert('Payment gateway not loaded. Please refresh the page and try again.');
+      alert('Payment gateway not loaded. Please refresh and try again.');
       setLoading(false);
       return;
     }
 
-    // Step 3: Configure Razorpay options
+    // ✅ UPDATED RAZORPAY OPTIONS
     const options = {
       key: keyId,
-      amount: amount, // Amount in paise
+      amount: amount,
       currency: currency,
       name: 'CareFlow',
-      description: `Consultation Fee - Dr. ${doctorName}`,
+      description: `Consultation - Dr. ${doctorName}`,
       order_id: orderId,
       
-      // Prefill user details
       prefill: {
         name: userInfo?.user?.name || '',
         email: userInfo?.user?.email || '',
         contact: userInfo?.user?.phone || ''
       },
 
-      // Theme
       theme: {
         color: '#06b6d4'
       },
 
-      // Notes
-      notes: {
-        appointmentDate: formData.appointmentDate,
-        appointmentTime: formData.appointmentTime,
-        reason: formData.reason || 'Consultation'
+      // ✅ ADD RETRY OPTIONS
+      retry: {
+        enabled: true,
+        max_count: 3
       },
 
-      // Success handler
+      // ✅ ADD TIMEOUT
+      timeout: 300, // 5 minutes
+
+      // ✅ SUCCESS HANDLER
       handler: async function (response) {
-        console.log('✅ Step 3: Payment successful:', response);
+        console.log('✅ Payment Success:', response);
         setLoading(true);
         
         try {
-          // Verify payment with backend
-          console.log('🚀 Step 4: Verifying payment...');
-          
           const verifyResponse = await axios.post(
             'https://careflow-lsf5.onrender.com/api/appointment-payment/verify',
             {
@@ -175,78 +153,70 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
             config
           );
 
-          console.log('✅ Step 5: Payment verified:', verifyResponse.data);
+          console.log('✅ Payment Verified:', verifyResponse.data);
           
-          // Show success message
           alert(
-            '✅ Appointment Booked Successfully!\n\n' +
-            `Consultation Fee: ₹${consultationFee}\n` +
+            '✅ Appointment Booked!\n\n' +
+            `Fee: ₹${consultationFee}\n` +
             `Payment ID: ${response.razorpay_payment_id}\n\n` +
-            'Confirmation sent to your email.\n' +
-            'Waiting for doctor approval.'
+            'Confirmation sent to email.'
           );
           
-          // Call success callback
-          if (onSuccess) {
-            onSuccess();
-          }
-          
-          // Close modal
+          if (onSuccess) onSuccess();
           onClose();
 
         } catch (error) {
-          console.error('❌ Verification error:', error);
-          setLoading(false);
+          console.error('❌ Verification Error:', error);
           alert(
             '⚠️ Payment completed but verification failed.\n\n' +
             `Payment ID: ${response.razorpay_payment_id}\n\n` +
-            'Please contact support or check your appointments.'
+            'Please contact support.'
           );
-          
-          // Still close modal since payment was made
           onClose();
+        } finally {
+          setLoading(false);
         }
       },
 
-      // Modal dismiss handler
+      // ✅ MODAL DISMISS HANDLER
       modal: {
         ondismiss: function() {
-          console.log('❌ Payment cancelled by user');
+          console.log('❌ Payment cancelled');
           setLoading(false);
-          alert('Payment cancelled. Appointment was not booked.');
+          alert('Payment cancelled. Appointment not booked.');
         },
         escape: true,
         backdropclose: false
       }
     };
 
-    console.log('🚀 Step 6: Opening Razorpay checkout...');
+    console.log('🚀 Opening Razorpay...');
     
-    // Step 4: Open Razorpay checkout
     const razorpay = new window.Razorpay(options);
     
-    // Payment failure handler
+    // ✅ PAYMENT FAILED HANDLER
     razorpay.on('payment.failed', function (response) {
-      console.error('❌ Payment failed:', response.error);
+      console.error('❌ Payment Failed:', response.error);
       setLoading(false);
+      
+      const errorMessage = response.error.description || 'Payment failed';
+      
       alert(
         '❌ Payment Failed\n\n' +
-        `Error: ${response.error.description}\n\n` +
-        'Please try again or contact support.'
+        `Error: ${errorMessage}\n\n` +
+        'Please try again with a different card or payment method.'
       );
     });
 
     razorpay.open();
-    console.log('✅ Razorpay checkout opened');
     setLoading(false);
 
   } catch (error) {
-    console.error('❌ Error in appointment booking:', error);
-    console.error('Error details:', error.response?.data);
+    console.error('❌ Error:', error);
+    console.error('Error response:', error.response?.data);
     setLoading(false);
     
-    const errorMessage = error.response?.data?.message || 'Failed to book appointment. Please try again.';
-    alert('Error: ' + errorMessage);
+    alert('Error: ' + (error.response?.data?.message || 'Failed to book appointment'));
   }
 };
 

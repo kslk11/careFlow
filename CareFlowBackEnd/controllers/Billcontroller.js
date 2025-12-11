@@ -124,169 +124,179 @@ exports.createBillFromReferral = async (req, res) => {
   try {
     const referralId = req.params.id;
 
-    console.log('Creating bill from referral:', referralId);
+    console.log("Creating bill from referral:", referralId);
 
-    // Find the referral with all populated data
+    // Fetch referral
     const referral = await Referral.findById(referralId)
-      .populate('hospitalId', 'name email phone address')
-      .populate('doctorId', 'name specialization')
-      .populate('operationId', 'name price')
-      .populate('bedId', 'bedType roomNumber bedNumber pricePerDay');
+      .populate("hospitalId", "name email phone address")
+      .populate("assignedDoctorId", "name specialization")
+      .populate("operationId", "name price")
+      .populate("assignedBedId", "bedType roomNumber bedNumber pricePerDay");
 
     if (!referral) {
-      return res.status(404).json({
-        success: false,
-        message: 'Referral not found',
-      });
+      return res.status(404).json({ success: false, message: "Referral not found" });
     }
 
-    // Check if referral is completed
-    if (referral.status !== 'completed') {
+    if (referral.status !== "completed") {
       return res.status(400).json({
         success: false,
-        message: 'Referral must be completed before generating bill',
+        message: "Referral must be completed before generating bill",
       });
     }
 
-    // Check if bill already exists for this referral
-    const existingBill = await Bill.findOne({ referralId: referralId });
+    // Check existing bill
+    const existingBill = await Bill.findOne({ referralId });
     if (existingBill) {
       return res.status(400).json({
         success: false,
-        message: 'Bill already exists for this referral',
+        message: "Bill already exists for this referral",
         billNumber: existingBill.billNumber,
       });
     }
 
-    // Generate unique bill number
+    // Bill number
     const billNumber = await Bill.generateBillNumber();
 
-    // ✅ BUILD ITEMS ARRAY - Include BOTH operation AND bed charges
+    // ------------------------
+    //  CALCULATE DAYS STAYED
+    // ------------------------
+    let daysStayed = 1;
+
+    if (referral.assignedDate && referral.dischargeDate) {
+      daysStayed =
+        Math.ceil(
+          (new Date(referral.dischargeDate) - new Date(referral.assignedDate)) /
+            (1000 * 60 * 60 * 24)
+        ) || 1;
+    }
+
     const items = [];
-    console.log(existingBill)
-    // 1. Add Operation Charges (if exists)
+
+    // -----------------------------------
+    // 1. OPERATION CHARGES (PER DAY)
+    // -----------------------------------
     if (referral.operationId) {
+      const perDayOpPrice = referral.operationId.price || 0;
+
       items.push({
-        itemType: 'Operation',
-        itemName: referral.operationId.name || 'Surgical Operation',
-        description: `Operation performed on ${new Date(referral.operationDate).toLocaleDateString()}`,
-        quantity: 1,
-        unitPrice: referral.operationId.price || 0,
-        totalPrice: referral.operationId.price || 0,
+        itemType: "Operation",
+        itemName: referral.operationId.name || "Surgical Operation",
+        description: `${daysStayed} day(s) operation charges`,
+        quantity: daysStayed,
+        unitPrice: perDayOpPrice,
+        totalPrice: perDayOpPrice * daysStayed,
       });
     }
 
-    // 2. Add Bed Charges (if exists)
-    if (referral.bedId && referral.assignedDate && referral.dischargeDate) {
-      // Calculate days stayed
-      const admissionDate = new Date(referral.assignedDate);
-      const dischargeDate = new Date(referral.dischargeDate);
-      const daysStayed = Math.ceil((dischargeDate - admissionDate) / (1000 * 60 * 60 * 24)) || 1;
-      
-      const pricePerDay = referral.bedId.pricePerDay || 0;
+    // -----------------------------------
+    // 2. BED CHARGES (PER DAY)
+    // -----------------------------------
+    if (
+      referral.assignedBedId &&
+      referral.assignedDate &&
+      referral.dischargeDate
+    ) {
+      const pricePerDay = referral.assignedBedId.pricePerDay || 0;
       const totalBedCharges = pricePerDay * daysStayed;
 
       items.push({
-        itemType: 'Bed',
-        itemName: `${referral.bedId.bedType} - Room ${referral.bedId.roomNumber}`,
-        description: `${daysStayed} day(s) stay from ${admissionDate.toLocaleDateString()} to ${dischargeDate.toLocaleDateString()}`,
+        itemType: "Bed",
+        itemName: `${referral.assignedBedId.bedType} - Room ${referral.assignedBedId.roomNumber}`,
+        description: `${daysStayed} day(s) stay from ${new Date(
+          referral.assignedDate
+        ).toLocaleDateString()} to ${new Date(
+          referral.dischargeDate
+        ).toLocaleDateString()}`,
         quantity: daysStayed,
         unitPrice: pricePerDay,
         totalPrice: totalBedCharges,
       });
     }
 
-    // 3. Calculate subtotal from all items
+    // -----------------------------------
+    // 3. SUBTOTAL, TAX, TOTAL
+    // -----------------------------------
     const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-
-    // 4. Calculate tax (5% of subtotal)
-    const tax = subtotal * 0.05;
-
-    // 5. Calculate total amount
+    const tax = subtotal * 0.05; // 5% tax
     const totalAmount = subtotal + tax;
 
-    // ✅ CREATE BILL WITH COMPLETE DATA
+    // -----------------------------------
+    // BILL DATA
+    // -----------------------------------
     const billData = {
       hospitalId: referral.hospitalId._id,
-      
-      // Patient Information
+
       patientName: referral.patientName,
       patientPhone: referral.patientPhone,
       patientEmail: referral.patientEmail || null,
-      patientAddress: referral.patientAddress || '',
-      
-      // Bill Details
-      billNumber: billNumber,
-      referralId: referralId,
-      assignedDoctorId: referral.doctorId?._id || null,
-      
-      // Items (Operation + Bed + any other charges)
-      items: items,
-      
-      // Pricing
-      subtotal: subtotal,
-      tax: tax,
+      patientAddress: referral.patientAddress || "",
+
+      billNumber,
+      referralId,
+      assignedDoctorId: referral.assignedDoctorId?._id || null,
+
+      items,
+      subtotal,
+      tax,
       discount: 0,
-      totalAmount: totalAmount,
-      
-      // Payment Information
-      paymentStatus: 'pending',
+      totalAmount,
+
+      paymentStatus: "pending",
       amountPaid: 0,
       amountDue: totalAmount,
-      
-      // Bed Details (for reference)
-      bedDetails: referral.bedId ? {
-        bedId: referral.bedId._id,
-        bedType: referral.bedId.bedType,
-        roomNumber: referral.bedId.roomNumber,
-        bedNumber: referral.bedId.bedNumber,
-        admissionDate: referral.assignedDate,
-        dischargeDate: referral.dischargeDate,
-        daysStayed: Math.ceil((new Date(referral.dischargeDate) - new Date(referral.assignedDate)) / (1000 * 60 * 60 * 24)) || 1,
-        bedCharges: items.find(item => item.itemType === 'Bed')?.totalPrice || 0,
-      } : null,
-      
-      // Operation Details (for reference)
-      operationDetails: referral.operationId ? {
-        operationId: referral.operationId._id,
-        operationName: referral.operationId.name,
-        operationDate: referral.operationDate,
-        operationCharges: referral.operationId.price || 0,
-      } : null,
-      
-      // Bill Date
+
+      bedDetails: referral.assignedBedId
+        ? {
+            bedId: referral.assignedBedId._id,
+            bedType: referral.assignedBedId.bedType,
+            roomNumber: referral.assignedBedId.roomNumber,
+            bedNumber: referral.assignedBedId.bedNumber,
+            admissionDate: referral.assignedDate,
+            dischargeDate: referral.dischargeDate,
+            daysStayed,
+            bedCharges:
+              items.find((item) => item.itemType === "Bed")?.totalPrice || 0,
+          }
+        : null,
+
+      operationDetails: referral.operationId
+        ? {
+            operationId: referral.operationId._id,
+            operationName: referral.operationId.name,
+            operationDate: referral.operationDate,
+            operationCharges:
+              items.find((item) => item.itemType === "Operation")
+                ?.totalPrice || 0,
+          }
+        : null,
+
       billDate: new Date(),
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     };
 
-    // Create the bill
+    // Create Bill
     const bill = await Bill.create(billData);
 
-    // Populate bill for response
     const populatedBill = await Bill.findById(bill._id)
-      .populate('hospitalId', 'name email phone address')
-      .populate('assignedDoctorId', 'name specialization')
-      .populate('referralId');
-
-    console.log('✅ Bill created successfully:', bill.billNumber);
-    console.log('Items in bill:', bill.items.length);
-    console.log('Total amount:', bill.totalAmount);
+      .populate("hospitalId", "name email phone address")
+      .populate("assignedDoctorId", "name specialization")
+      .populate("referralId");
 
     res.status(201).json({
       success: true,
-      message: 'Bill created successfully',
+      message: "Bill created successfully",
       data: populatedBill,
     });
-
   } catch (error) {
-    console.error('❌ Error creating bill from referral:', error);
+    console.error("❌ Error creating bill from referral:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error while creating bill',
+      message: "Server error while creating bill",
       error: error.message,
     });
   }
 };
+
 // ==================== GET ALL HOSPITAL BILLS ====================
 /**
  * @route   GET /api/bill/hospital

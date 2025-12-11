@@ -54,7 +54,7 @@ exports.createAppointmentPaymentOrder = async (req, res) => {
       });
     }
 
-    const consultationFee = doctor.consultationFee || 500;
+const consultationFee = Math.max(100, doctor.consultationFee || 500);
 
     // ✅ CREATE APPOINTMENT WITH PATIENT DETAILS
     const appointmentData = {
@@ -92,7 +92,7 @@ exports.createAppointmentPaymentOrder = async (req, res) => {
 
 const razorpayOrder = await createRazorpayOrder(
   consultationFee,
-  `apt_${appointment._id.toString().slice(-20)}`, // Only last 20 chars of ID + prefix = 24 chars
+  `apt_${appointment._id.toString().slice(-20)}`,
   {
     appointmentId: appointment._id.toString(),
     doctorId: doctorId,
