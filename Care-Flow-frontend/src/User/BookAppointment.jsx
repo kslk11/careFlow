@@ -34,7 +34,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
 
   const fetchDoctorDetails = async () => {
     try {
-      const res = await axios.get(`http://localhost:8000/api/doctor/getDoctor/${doctorId}`,config);
+      const res = await axios.get(`https://careflow-lsf5.onrender.com/api/doctor/getDoctor/${doctorId}`,config);
       setDoctor(res.data);
       console.log(res.data)
     } catch (error) {
@@ -46,7 +46,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
   const fetchUserDetails = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:8000/api/user/getUser`, // ✅ Your endpoint is correct
+        `https://careflow-lsf5.onrender.com/api/user/getUser`, // ✅ Your endpoint is correct
         config
       );
       setUser(res.data);
@@ -62,44 +62,193 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const appointmentData = {
-        doctorId,
+  // Validate form
+  if (!formData.appointmentDate || !formData.appointmentTime) {
+    alert('Please select both date and time');
+    return;
+  }
+
+  if (!isSelf) {
+    if (!formData.familyMemberName || !formData.familyMemberAge || !formData.familyMemberGender) {
+      alert('Please fill all family member details');
+      return;
+    }
+  }
+
+  setLoading(true);
+
+  try {
+    console.log('🚀 Step 1: Creating appointment with payment...');
+
+    // Prepare appointment data
+    const appointmentData = {
+      doctorId,
+      appointmentDate: formData.appointmentDate,
+      appointmentTime: formData.appointmentTime,
+      reason: formData.reason,
+      isSelf
+    };
+
+    // Add family member details if not for self
+    if (!isSelf) {
+      appointmentData.familyMemberName = formData.familyMemberName;
+      appointmentData.familyMemberAge = parseInt(formData.familyMemberAge);
+      appointmentData.familyMemberGender = formData.familyMemberGender;
+      appointmentData.familyMemberRelation = formData.familyMemberRelation;
+      appointmentData.familyMemberAddress = formData.familyMemberAddress;
+    }
+
+    // Step 1: Create payment order (this also creates the appointment)
+    console.log('Creating payment order with data:', appointmentData);
+    
+    const orderResponse = await axios.post(
+      'https://careflow-lsf5.onrender.com/api/appointment-payment/create-order',
+      {
+        doctorId: doctorId,
+        hospitalId: appointmentData.hospitalId, // You might need to pass this
+        date: appointmentData.appointmentDate,
+        time: appointmentData.appointmentTime,
+        ...appointmentData // Include all appointment data
+      },
+      config
+    );
+
+    console.log('✅ Step 2: Order created:', orderResponse.data);
+
+    const { appointmentId, orderId, amount, currency, keyId, doctorName, consultationFee } = orderResponse.data.data;
+
+    // Step 2: Check if Razorpay is loaded
+    if (!window.Razorpay) {
+      alert('Payment gateway not loaded. Please refresh the page and try again.');
+      setLoading(false);
+      return;
+    }
+
+    // Step 3: Configure Razorpay options
+    const options = {
+      key: keyId,
+      amount: amount, // Amount in paise
+      currency: currency,
+      name: 'CareFlow',
+      description: `Consultation Fee - Dr. ${doctorName}`,
+      order_id: orderId,
+      
+      // Prefill user details
+      prefill: {
+        name: userInfo?.user?.name || '',
+        email: userInfo?.user?.email || '',
+        contact: userInfo?.user?.phone || ''
+      },
+
+      // Theme
+      theme: {
+        color: '#06b6d4'
+      },
+
+      // Notes
+      notes: {
         appointmentDate: formData.appointmentDate,
         appointmentTime: formData.appointmentTime,
-        reason: formData.reason,
-        isSelf
-      };
+        reason: formData.reason || 'Consultation'
+      },
 
-      // Add family member details if not for self
-      if (!isSelf) {
-        appointmentData.familyMemberName = formData.familyMemberName;
-        appointmentData.familyMemberAge = parseInt(formData.familyMemberAge);
-        appointmentData.familyMemberGender = formData.familyMemberGender;
-        appointmentData.familyMemberRelation = formData.familyMemberRelation;
-        appointmentData.familyMemberAddress = formData.familyMemberAddress;
+      // Success handler
+      handler: async function (response) {
+        console.log('✅ Step 3: Payment successful:', response);
+        setLoading(true);
+        
+        try {
+          // Verify payment with backend
+          console.log('🚀 Step 4: Verifying payment...');
+          
+          const verifyResponse = await axios.post(
+            'https://careflow-lsf5.onrender.com/api/appointment-payment/verify',
+            {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              appointmentId: appointmentId
+            },
+            config
+          );
+
+          console.log('✅ Step 5: Payment verified:', verifyResponse.data);
+          
+          // Show success message
+          alert(
+            '✅ Appointment Booked Successfully!\n\n' +
+            `Consultation Fee: ₹${consultationFee}\n` +
+            `Payment ID: ${response.razorpay_payment_id}\n\n` +
+            'Confirmation sent to your email.\n' +
+            'Waiting for doctor approval.'
+          );
+          
+          // Call success callback
+          if (onSuccess) {
+            onSuccess();
+          }
+          
+          // Close modal
+          onClose();
+
+        } catch (error) {
+          console.error('❌ Verification error:', error);
+          setLoading(false);
+          alert(
+            '⚠️ Payment completed but verification failed.\n\n' +
+            `Payment ID: ${response.razorpay_payment_id}\n\n` +
+            'Please contact support or check your appointments.'
+          );
+          
+          // Still close modal since payment was made
+          onClose();
+        }
+      },
+
+      // Modal dismiss handler
+      modal: {
+        ondismiss: function() {
+          console.log('❌ Payment cancelled by user');
+          setLoading(false);
+          alert('Payment cancelled. Appointment was not booked.');
+        },
+        escape: true,
+        backdropclose: false
       }
+    };
 
-      const res = await axios.post(
-        'http://localhost:8000/api/appointment/create',
-        appointmentData,
-        config
-      );
-
-      alert('Appointment booked successfully! Waiting for doctor approval.');
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error('Error booking appointment:', error);
-      alert(error.response?.data?.message || 'Failed to book appointment');
-    } finally {
+    console.log('🚀 Step 6: Opening Razorpay checkout...');
+    
+    // Step 4: Open Razorpay checkout
+    const razorpay = new window.Razorpay(options);
+    
+    // Payment failure handler
+    razorpay.on('payment.failed', function (response) {
+      console.error('❌ Payment failed:', response.error);
       setLoading(false);
-    }
-  };
+      alert(
+        '❌ Payment Failed\n\n' +
+        `Error: ${response.error.description}\n\n` +
+        'Please try again or contact support.'
+      );
+    });
+
+    razorpay.open();
+    console.log('✅ Razorpay checkout opened');
+    setLoading(false);
+
+  } catch (error) {
+    console.error('❌ Error in appointment booking:', error);
+    console.error('Error details:', error.response?.data);
+    setLoading(false);
+    
+    const errorMessage = error.response?.data?.message || 'Failed to book appointment. Please try again.';
+    alert('Error: ' + errorMessage);
+  }
+};
 
   const timeSlots = [
     '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',

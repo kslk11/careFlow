@@ -92,7 +92,40 @@ const appointmentSchema = new mongoose.Schema({
   // Consultation Details
   consultationFee: {
     type: Number,
-    required: true
+    default: 0,
+    min: 0
+  },
+  
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'refunded'],
+    default: 'pending'
+  },
+  
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'card', 'upi', 'netbanking', 'razorpay', 'wallet'],
+    default: null
+  },
+  
+  transactionId: {
+    type: String,
+    default: null
+  },
+  
+  razorpayOrderId: {
+    type: String,
+    default: null
+  },
+  
+  razorpayPaymentId: {
+    type: String,
+    default: null
+  },
+  
+  paidAt: {
+    type: Date,
+    default: null
   },
   isPaid: {
     type: Boolean,

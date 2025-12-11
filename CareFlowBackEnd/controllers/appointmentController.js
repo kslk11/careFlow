@@ -2,6 +2,8 @@ const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
 const User = require('../models/User');
 const Hospital = require('../models/Hospital');
+const { createRazorpayOrder, verifyRazorpaySignature } = require('../utils/razorpayHelper');
+const { sendEmail } = require('../services/emailService');
 
 // @desc    Create new appointment
 // @route   POST /api/appointment/create

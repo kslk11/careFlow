@@ -17,7 +17,7 @@ const RazorpayPayment = ({
   darkMode = false 
 }) => {
   const [loading, setLoading] = useState(false);
-
+// console.log(bill,amount)
   const token = localStorage.getItem('UserToken');
   const userInfo = JSON.parse(localStorage.getItem('Userinfo'));
 
@@ -32,7 +32,7 @@ const RazorpayPayment = ({
 
       // Step 1: Create Razorpay order from backend
       const orderResponse = await axios.post(
-        'http://localhost:8000/api/payment/create-order',
+        'https://careflow-lsf5.onrender.com/api/payment/create-order',
         {
           billId: bill._id,
           amount: amount,
@@ -105,7 +105,7 @@ const RazorpayPayment = ({
     } catch (error) {
       console.error('Error initiating payment:', error);
       setLoading(false);
-      alert(error.response?.data?.message || 'Failed to initiate payment');
+      alert( 'Failed to initiate payment');
       
       if (onFailure) {
         onFailure(error.response?.data || error);
@@ -120,7 +120,7 @@ const RazorpayPayment = ({
 
       // Verify payment with backend
       const verifyResponse = await axios.post(
-        'http://localhost:8000/api/payment/verify',
+        'https://careflow-lsf5.onrender.com/api/payment/verify',
         {
           razorpay_order_id: response.razorpay_order_id,
           razorpay_payment_id: response.razorpay_payment_id,
@@ -161,7 +161,7 @@ const RazorpayPayment = ({
     try {
       // Log failure to backend
       await axios.post(
-        'http://localhost:8000/api/payment/failure',
+        'https://careflow-lsf5.onrender.com/api/payment/failure',
         {
           orderId: error.metadata?.order_id,
           paymentId: error.metadata?.payment_id,

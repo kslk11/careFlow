@@ -668,7 +668,7 @@ exports.assignBedToReferral = async (req, res) => {
         referral.appointmentDate = appointmentDate;
         referral.appointmentTime = appointmentTime;
         referral.bedCharges = bedCharges || 0;
-        referral.totalPrice = totalPrice || referral.estimatedPrice;
+        referral.finalPrice = totalPrice || referral.estimatedPrice;
         
         if (assignedDoctorId) {
             referral.assignedDoctorId = assignedDoctorId;

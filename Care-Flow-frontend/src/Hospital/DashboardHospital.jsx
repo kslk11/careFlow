@@ -191,7 +191,7 @@ const handleRecordPayment = async (e) => {
   setLoading(true);
   try {
     await axios.post(
-      `http://localhost:8000/api/bill/payment/${selectedBillForPayment._id}`,
+      `https://careflow-lsf5.onrender.com/api/bill/payment/${selectedBillForPayment._id}`,
       paymentForm,
       config
     );
@@ -219,7 +219,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/department/get");
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/department/get");
       setAvailableDepartments(res.data);
       setDepartments(res.data);
     } catch (error) {
@@ -229,7 +229,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchDoctors = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/hospital/getdocs", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/getdocs", config);
       setDoctors(res.data);
     } catch (err) {
       console.log("Error fetching doctors:", err);
@@ -238,7 +238,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/hospital/getProfile", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/getProfile", config);
       setProfile(res.data);
       setProfileForm({
         name: res.data.name || "",
@@ -254,7 +254,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchOperations = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/operation/hospital", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/operation/hospital", config);
       setOperations(res.data);
     } catch (error) {
       console.error("Error fetching operations:", error);
@@ -263,7 +263,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchReferrals = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/refer/hospital", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/refer/hospital", config);
       setReferrals(res.data);
     } catch (error) {
       console.error("Error fetching referrals:", error);
@@ -272,7 +272,7 @@ const handleRecordPayment = async (e) => {
 
   const fetchBeds = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/bed/hospital", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/bed/hospital", config);
       setBeds(res.data);
     } catch (error) {
       console.error("Error fetching beds:", error);
@@ -280,7 +280,7 @@ const handleRecordPayment = async (e) => {
   };
  const fetchBills = async () => {
   try {
-    const res = await axios.get("http://localhost:8000/api/bill/hospital", config);
+    const res = await axios.get("https://careflow-lsf5.onrender.com/api/bill/hospital", config);
     
     // Your backend returns: { success: true, data: [...], summary: {...} }
     const billsData = res.data.data || []; // Get the 'data' property
@@ -330,7 +330,7 @@ const handleRecordPayment = async (e) => {
       }
 
       const res = await axios.get(
-        `http://localhost:8000/api/bed/hospital?isAvailable=true&status=Available${bedType ? `&bedType=${bedType}` : ''}`,
+        `https://careflow-lsf5.onrender.com/api/bed/hospital?isAvailable=true&status=Available${bedType ? `&bedType=${bedType}` : ''}`,
         config
       );
       setAvailableBedsForReferral(res.data);
@@ -403,7 +403,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.post(
-        "http://localhost:8000/api/doctor/register",
+        "https://careflow-lsf5.onrender.com/api/doctor/register",
         { ...newDoctor, hospitalId: hospitalInfo.userId },
         config
       );
@@ -443,7 +443,7 @@ const handleRecordPayment = async (e) => {
 
     try {
       await axios.post(
-        "http://localhost:8000/api/operation/create",
+        "https://careflow-lsf5.onrender.com/api/operation/create",
         operationForm,
         config
       );
@@ -478,7 +478,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.put(
-        `http://localhost:8000/api/operation/update/${editingOperation._id}`,
+        `https://careflow-lsf5.onrender.com/api/operation/update/${editingOperation._id}`,
         operationForm,
         config
       );
@@ -500,7 +500,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.delete(
-        `http://localhost:8000/api/operation/${operationId}`,
+        `https://careflow-lsf5.onrender.com/api/operation/${operationId}`,
         config
       );
       alert("Operation deleted successfully!");
@@ -531,7 +531,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.post(
-        "http://localhost:8000/api/bed/create",
+        "https://careflow-lsf5.onrender.com/api/bed/create",
         bedForm,
         config
       );
@@ -546,7 +546,7 @@ const handleRecordPayment = async (e) => {
       setLoading(false);
     }
   };
-
+// console.log(filteredReferrals)
   const handleEditBed = (bed) => {
     setEditingBed(bed);
     setBedForm({
@@ -569,7 +569,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.put(
-        `http://localhost:8000/api/bed/update/${editingBed._id}`,
+        `https://careflow-lsf5.onrender.com/api/bed/update/${editingBed._id}`,
         bedForm,
         config
       );
@@ -590,7 +590,7 @@ const handleRecordPayment = async (e) => {
 
     setLoading(true);
     try {
-      await axios.delete(`http://localhost:8000/api/bed/${bedId}`, config);
+      await axios.delete(`https://careflow-lsf5.onrender.com/api/bed/${bedId}`, config);
       alert("Bed deleted successfully!");
       fetchBeds();
     } catch (error) {
@@ -607,7 +607,7 @@ const handleRecordPayment = async (e) => {
     setLoading(true);
     try {
       await axios.patch(
-        `http://localhost:8000/api/bed/release/${bedId}`,
+        `https://careflow-lsf5.onrender.com/api/bed/release/${bedId}`,
         {},
         config
       );
@@ -760,7 +760,7 @@ const handleCreateBill = async (e) => {
   try {
      console.log("📤 Bill Data Being Sent:", JSON.stringify(billData, null, 2));
     await axios.post(
-      "http://localhost:8000/api/bill/create",
+      "https://careflow-lsf5.onrender.com/api/bill/create",
       billForm,
       config
     );
@@ -806,7 +806,7 @@ const handleUpdateBill = async (e) => {
   setLoading(true);
   try {
     await axios.put(
-      `http://localhost:8000/api/bill/${editingBill._id}`,
+      `https://careflow-lsf5.onrender.com/api/bill/${editingBill._id}`,
       billForm,
       config
     );
@@ -827,7 +827,7 @@ const handleDeleteBill = async (billId) => {
 
   setLoading(true);
   try {
-    await axios.delete(`http://localhost:8000/api/bill/${billId}`, config);
+    await axios.delete(`https://careflow-lsf5.onrender.com/api/bill/${billId}`, config);
     alert("Bill deleted successfully!");
     fetchBills();
   } catch (error) {
@@ -843,7 +843,7 @@ const handleGenerateBillFromReferral = async (referralId) => {
 
   setLoading(true);
   try {
-    await axios.post(`http://localhost:8000/api/bill/create-from-referral/${referralId}`,{});
+    await axios.post(`https://careflow-lsf5.onrender.com/api/bill/create-from-referral/${referralId}`,{});
     alert("Bill generated successfully!");
     fetchBills();
     fetchReferrals(); // Refresh referrals to update status
@@ -943,7 +943,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     };
 
     const response = await axios.post(
-      "http://localhost:8000/api/bill/create",
+      "https://careflow-lsf5.onrender.com/api/bill/create",
       billData,
       config
     );
@@ -972,7 +972,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     setLoading(true);
     try {
       await axios.patch(
-        `http://localhost:8000/api/refer/accept/${referralId}`,
+        `https://careflow-lsf5.onrender.com/api/refer/accept/${referralId}`,
         { status: "accepted" },
         config
       );
@@ -999,7 +999,7 @@ const generateBillFromCompletedReferral = async (referral) => {
       const totalPrice = (selectedReferralForBed.estimatedPrice || 0) + bedCharges;
 
       await axios.patch(
-        `http://localhost:8000/api/refer/assign-bed/${selectedReferralForBed._id}`,
+        `https://careflow-lsf5.onrender.com/api/refer/assign-bed/${selectedReferralForBed._id}`,
         {
           ...assignBedForm,
           totalPrice,
@@ -1030,7 +1030,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     setLoading(true);
     try {
       await axios.patch(
-        `http://localhost:8000/api/refer/reject/${referralId}`,
+        `https://careflow-lsf5.onrender.com/api/refer/reject/${referralId}`,
         { rejectionReason },
         config
       );
@@ -1052,7 +1052,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     // Step 1: Mark referral as completed
     console.log("🔄 Step 1: Completing referral...");
     await axios.patch(
-      `http://localhost:8000/api/refer/complete/${referralId}`,
+      `https://careflow-lsf5.onrender.com/api/refer/complete/${referralId}`,
       {},
       config
     );
@@ -1122,7 +1122,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     setLoading(true);
     try {
       const res = await axios.put(
-        "http://localhost:8000/api/hospital/profile",
+        "https://careflow-lsf5.onrender.com/api/hospital/profile",
         profileForm,
         config
       );
@@ -1149,7 +1149,7 @@ const generateBillFromCompletedReferral = async (referral) => {
     setLoading(true);
     try {
       await axios.put(
-        "http://localhost:8000/api/hospital/resetpassword",
+        "https://careflow-lsf5.onrender.com/api/hospital/resetpassword",
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
@@ -1273,7 +1273,7 @@ const [paymentForm, setPaymentForm] = useState({
 const [billsOfHospital,SetbillsOfHospital] = useState({})
 
 const fetchAllbills = async()=>{
-  const res = await axios.get('http://localhost:8000/api/bill/getAll/bill',config)
+  const res = await axios.get('https://careflow-lsf5.onrender.com/api/bill/getAll/bill',config)
   SetbillsOfHospital(res.data)
 }
 // ==================== FILTER EFFECT ====================
@@ -2292,145 +2292,272 @@ useEffect(() => {
               </thead>
               <tbody className={`divide-y ${borderColor}`}>
                 {filteredReferrals.map((referral) => (
-                  <tr key={referral._id} className={hoverBg}>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className={`font-semibold ${textPrimary}`}>{referral.patientName}</p>
-                        <p className={`text-sm ${textSecondary}`}>{referral.patientPhone}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className={`font-medium ${textPrimary}`}>{referral.referringDoctorId?.name || "N/A"}</p>
-                        <p className={`text-sm ${textSecondary}`}>{referral.referringDoctorId?.specialization || ""}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {referral.operationId ? (
-                        <div>
-                          <p className={`font-medium ${textPrimary}`}>{referral.operationId.operationName}</p>
-                          <p className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'} font-semibold`}>
-                            ₹{referral.operationId.price.toLocaleString()}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} text-sm`}>No operation</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${referral.careType === "ICU" ? (darkMode ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-800") :
-                          referral.careType === "Emergency" ? (darkMode ? "bg-orange-900/40 text-orange-300" : "bg-orange-100 text-orange-800") :
-                            referral.careType === "Ward" || referral.careType === "General Ward" ? (darkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-800") :
-                              (darkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800")
-                        }`}>
-                        {referral.careType}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${referral.urgency === "Critical" ? (darkMode ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-800") :
-                          referral.urgency === "High" ? (darkMode ? "bg-orange-900/40 text-orange-300" : "bg-orange-100 text-orange-800") :
-                            referral.urgency === "Medium" ? (darkMode ? "bg-yellow-900/40 text-yellow-300" : "bg-yellow-100 text-yellow-800") :
-                              (darkMode ? "bg-green-900/40 text-green-300" : "bg-green-100 text-green-800")
-                        }`}>
-                        {referral.urgency}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {referral.assignedBedId ? (
-                        <div>
-                          <p className={`font-medium ${textPrimary} text-sm`}>
-                            {getBedName(referral.assignedBedId)}
-                          </p>
-                          {referral.bedCharges > 0 && (
-                            <p className={`text-xs ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                              +₹{referral.bedCharges.toLocaleString()}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} text-sm`}>Not assigned</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className={`font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                        ₹{calculateTotalPrice(referral).toLocaleString()}
-                      </p>
-                      {referral.bedCharges > 0 && (
-                        <p className={`text-xs ${textSecondary}`}>
-                          (Base: ₹{referral.estimatedPrice.toLocaleString()})
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(referral.status)}`}>
-                        {referral.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-  <div className="flex flex-col gap-2">
-    {/* Action Buttons */}
-    <div className="flex gap-2">
-      {referral.status === "pending" && (
-        <>
-          <button 
-            onClick={() => handleAcceptReferral(referral._id)}
-            className="text-green-600 hover:text-green-900 font-medium"
-          >
-            Accept
-          </button>
-          <button 
-            onClick={() => handleRejectReferral(referral._id)}
-            className="text-red-600 hover:text-red-900 font-medium"
-          >
-            Reject
-          </button>
-        </>
-      )}
-      {referral.status === "accepted" && referral.bedId && (
-        <button 
-          onClick={() => handleCompleteReferral(referral._id)}
-          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium"
-        >
-          ✅ Complete & Generate Bill
-        </button>
-      )}
-      {referral.status === "accepted" && !referral.bedId && (
-        <button 
-          onClick={() => openAssignBedModal(referral)}
-          className="text-blue-600 hover:text-blue-900 font-medium"
-        >
-          Assign Bed
-        </button>
-      )}
-      
-      
-    </div>
+  <tr key={referral._id} className={hoverBg}>
+    {/* Patient Info */}
+    <td className="px-6 py-4">
+      <div>
+        <p className={`font-semibold ${textPrimary}`}>{referral.patientName}</p>
+        <p className={`text-sm ${textSecondary}`}>{referral.patientPhone}</p>
+      </div>
+    </td>
 
-    {/* Bill Status Indicator */}
-    {referral.status === "completed" && (
-      <div className="flex items-center gap-2">
-        {bills.find(b => b.referralId?._id === referral._id) ? (
-          <span className={`text-xs px-2 py-1 rounded-full ${
-            darkMode 
-              ? 'bg-green-900/30 text-green-300 border border-green-700' 
-              : 'bg-green-100 text-green-800 border border-green-200'
-          }`}>
-            💰 Bill Generated
+    {/* Referring Doctor */}
+    <td className="px-6 py-4">
+      <div>
+        <p className={`font-medium ${textPrimary}`}>{referral.referringDoctorId?.name || "N/A"}</p>
+        <p className={`text-sm ${textSecondary}`}>{referral.referringDoctorId?.specialization || ""}</p>
+      </div>
+    </td>
+
+    {/* Operation Details */}
+    <td className="px-6 py-4">
+      {referral.operationId ? (
+        <div>
+          <p className={`font-medium ${textPrimary}`}>{referral.operationId.operationName}</p>
+          <p className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'} font-semibold`}>
+            ₹{referral.operationId.price.toLocaleString()}
+          </p>
+        </div>
+      ) : (
+        <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} text-sm`}>No operation</span>
+      )}
+    </td>
+
+    {/* Care Type */}
+    <td className="px-6 py-4">
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+        referral.careType === "ICU" ? (darkMode ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-800") :
+        referral.careType === "Emergency" ? (darkMode ? "bg-orange-900/40 text-orange-300" : "bg-orange-100 text-orange-800") :
+        referral.careType === "Ward" || referral.careType === "General Ward" ? (darkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-800") :
+        (darkMode ? "bg-purple-900/40 text-purple-300" : "bg-purple-100 text-purple-800")
+      }`}>
+        {referral.careType}
+      </span>
+    </td>
+
+    {/* Urgency */}
+    <td className="px-6 py-4">
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+        referral.urgency === "Critical" ? (darkMode ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-800") :
+        referral.urgency === "High" ? (darkMode ? "bg-orange-900/40 text-orange-300" : "bg-orange-100 text-orange-800") :
+        referral.urgency === "Medium" ? (darkMode ? "bg-yellow-900/40 text-yellow-300" : "bg-yellow-100 text-yellow-800") :
+        (darkMode ? "bg-green-900/40 text-green-300" : "bg-green-100 text-green-800")
+      }`}>
+        {referral.urgency}
+      </span>
+    </td>
+
+    {/* ✅ UPDATED: Bed Assignment with Full Details */}
+    <td className="px-6 py-4">
+      {referral.assignedBedId || referral.bedId ? (
+        <div>
+          {/* Bed Information */}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl">🛏️</span>
+            <div>
+              <p className={`font-semibold ${textPrimary} text-sm`}>
+                {referral.bedId?.bedType || getBedName(referral.assignedBedId) || 'Bed Assigned'}
+              </p>
+              {referral.bedId && (
+                <p className={`text-xs ${textSecondary}`}>
+                  Room: {referral.bedId.roomNumber} • Bed: {referral.bedId.bedNumber}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Bed Charges with Days Calculation */}
+          {(referral.assignedDate && referral.dischargeDate) && (
+            <div className={`mt-2 p-2 rounded-lg ${darkMode ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className={textSecondary}>Bed Rate:</span>
+                <span className={`font-semibold ${textPrimary}`}>
+                  ₹{referral.bedId?.pricePerDay?.toLocaleString() || 0}/day
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className={textSecondary}>Days:</span>
+                <span className={`font-semibold ${textPrimary}`}>
+                  {(() => {
+                    const days = Math.ceil((new Date(referral.dischargeDate) - new Date(referral.assignedDate)) / (1000 * 60 * 60 * 24));
+                    return days || 1;
+                  })()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-blue-200 dark:border-blue-800">
+                <span className={textSecondary}>Bed Charges:</span>
+                <span className={`font-bold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                  ₹{(() => {
+                    const days = Math.ceil((new Date(referral.dischargeDate) - new Date(referral.assignedDate)) / (1000 * 60 * 60 * 24)) || 1;
+                    const pricePerDay = referral.bedId?.pricePerDay || 0;
+                    return (days * pricePerDay).toLocaleString();
+                  })()}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Date Range */}
+          {(referral.assignedDate || referral.dischargeDate) && (
+            <div className={`mt-2 text-xs ${textSecondary}`}>
+              <div className="flex items-center gap-1">
+                <span>📅 Admitted:</span>
+                <span className="font-medium">
+                  {referral.assignedDate ? new Date(referral.assignedDate).toLocaleDateString() : 'N/A'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <span>📅 Discharge:</span>
+                <span className="font-medium">
+                  {referral.dischargeDate ? new Date(referral.dischargeDate).toLocaleDateString() : 'N/A'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-center">
+          <span className={`${darkMode ? 'text-gray-500' : 'text-gray-400'} text-sm`}>
+            Not assigned
           </span>
-        ) : (
-          <button
-            onClick={() => handleGenerateBillFromReferral(referral._id)}
-            className="text-xs text-orange-600 hover:text-orange-900 font-medium"
-          >
-            Generate Bill
-          </button>
+        </div>
+      )}
+    </td>
+
+    {/* ✅ UPDATED: Total Price with Breakdown */}
+    <td className="px-6 py-4">
+      <div>
+        {/* Operation Price */}
+        {referral.operationId && (
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-xs ${textSecondary}`}>Operation:</span>
+            <span className={`font-semibold ${textPrimary} text-sm`}>
+              ₹{referral.operationId.price?.toLocaleString()}
+            </span>
+          </div>
+        )}
+
+        {/* Bed Charges (if assigned) */}
+        {(referral.assignedBedId || referral.bedId) && referral.assignedDate && referral.dischargeDate && (
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-xs ${textSecondary}`}>Bed Charges:</span>
+            <span className={`font-semibold ${darkMode ? 'text-blue-400' : 'text-blue-600'} text-sm`}>
+              + ₹{(() => {
+                const days = Math.ceil((new Date(referral.dischargeDate) - new Date(referral.assignedDate)) / (1000 * 60 * 60 * 24)) || 1;
+                const pricePerDay = referral.bedId?.pricePerDay || 0;
+                return (days * pricePerDay).toLocaleString();
+              })()}
+            </span>
+          </div>
+        )}
+
+        {/* Divider */}
+        {referral.operationId && (referral.assignedBedId || referral.bedId) && referral.assignedDate && referral.dischargeDate && (
+          <div className="border-t border-gray-300 dark:border-gray-600 my-2"></div>
+        )}
+
+        {/* Total Price */}
+        <div className="flex items-center justify-between">
+          <span className={`text-sm font-bold ${textSecondary}`}>Total:</span>
+          <span className={`font-bold text-lg ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+            ₹{(() => {
+              let total = 0;
+              
+              // Add operation price
+              if (referral.operationId?.price) {
+                total += referral.operationId.price;
+              }
+              
+              // Add bed charges if assigned
+              if ((referral.assignedBedId || referral.bedId) && referral.assignedDate && referral.dischargeDate) {
+                const days = Math.ceil((new Date(referral.dischargeDate) - new Date(referral.assignedDate)) / (1000 * 60 * 60 * 24)) || 1;
+                const pricePerDay = referral.bedId?.pricePerDay || 0;
+                total += (days * pricePerDay);
+              }
+              
+              return total.toLocaleString();
+            })()}
+          </span>
+        </div>
+
+        {/* Tax Note */}
+        <p className={`text-xs ${textSecondary} mt-1 text-right italic`}>
+          + 5% tax on bill
+        </p>
+      </div>
+    </td>
+
+    {/* Status */}
+    <td className="px-6 py-4">
+      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(referral.status)}`}>
+        {referral.status}
+      </span>
+    </td>
+
+    {/* Actions */}
+    <td className="px-6 py-4 text-sm">
+      <div className="flex flex-col gap-2">
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          {referral.status === "pending" && (
+            <>
+              <button 
+                onClick={() => handleAcceptReferral(referral._id)}
+                className="text-green-600 hover:text-green-900 font-medium"
+              >
+                Accept
+              </button>
+              <button 
+                onClick={() => handleRejectReferral(referral._id)}
+                className="text-red-600 hover:text-red-900 font-medium"
+              >
+                Reject
+              </button>
+            </>
+          )}
+          {referral.status === "accepted" && referral.bedId && (
+            <button 
+              onClick={() => handleCompleteReferral(referral._id)}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium"
+            >
+              ✅ Complete & Generate Bill
+            </button>
+          )}
+          {referral.status === "accepted" && !referral.bedId && (
+            <button 
+              onClick={() => openAssignBedModal(referral)}
+              className="text-blue-600 hover:text-blue-900 font-medium"
+            >
+              Assign Bed
+            </button>
+          )}
+        </div>
+
+        {/* Bill Status Indicator */}
+        {referral.status === "completed" && (
+          <div className="flex items-center gap-2">
+            {bills.find(b => b.referralId?._id === referral._id) ? (
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                darkMode 
+                  ? 'bg-green-900/30 text-green-300 border border-green-700' 
+                  : 'bg-green-100 text-green-800 border border-green-200'
+              }`}>
+                💰 Bill Generated
+              </span>
+            ) : (
+              <button
+                onClick={() => handleGenerateBillFromReferral(referral._id)}
+                className="text-xs text-orange-600 hover:text-orange-900 font-medium"
+              >
+                Generate Bill
+              </button>
+            )}
+          </div>
         )}
       </div>
-    )}
-  </div>
-</td>
-                  </tr>
-                ))}
+    </td>
+  </tr>
+))}
               </tbody>
             </table>
           </div>

@@ -17,6 +17,7 @@ const bads =require('./routers/bedRoutes')
 const billRoutes = require('./routers/Billroutes');
 const reviewRoutes = require('./routers/reviewRoutes');
 const paymentRoutes = require('./routers/paymentRoutes');
+const appointmentPaymentRoutes = require('./routers/appointmentPaymentRoutes');
 
 
 dotenv.config();
@@ -46,6 +47,7 @@ app.use('/api/bed', bads);
 app.use('/api/bill', billRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/appointment-payment', appointmentPaymentRoutes);
 
 
 app.get('/', (req, res) => {

@@ -115,136 +115,178 @@ exports.createBill = async (req, res) => {
  * @desc    Create bill automatically from completed referral
  * @access  Private (Hospital)
  */
+/**
+ * @desc    Create bill from completed referral
+ * @route   POST /api/bill/create-from-referral/:id
+ * @access  Private (Hospital)
+ */
 exports.createBillFromReferral = async (req, res) => {
-    try {
-        const referralId = req.params.id;
-        console.log(referralId)
-        if (!referralId) {
-            return res.status(400).json({
-                success: false,
-                message: "Referral ID is required"
-            });
-        }
+  try {
+    const referralId = req.params.id;
 
-        // Find the referral
-        const referral = await Refer.findById(referralId)
-            .populate('operationId')
-            .populate('assignedBedId')
-            .populate('assignedDoctorId');
+    console.log('Creating bill from referral:', referralId);
 
-        if (!referral) {
-            return res.status(404).json({
-                success: false,
-                message: "Referral not found"
-            });
-        }
+    // Find the referral with all populated data
+    const referral = await Referral.findById(referralId)
+      .populate('hospitalId', 'name email phone address')
+      .populate('doctorId', 'name specialization')
+      .populate('operationId', 'name price')
+      .populate('bedId', 'bedType roomNumber bedNumber pricePerDay');
 
-        if (referral.status !== 'completed') {
-            return res.status(400).json({
-                success: false,
-                message: "Referral must be completed to generate bill"
-            });
-        }
-
-        // Check if bill already exists for this referral
-        const existingBill = await Bill.findOne({ referralId: referralId });
-        if (existingBill) {
-            return res.status(400).json({
-                success: false,
-                message: "Bill already exists for this referral",
-                billNumber: existingBill.billNumber
-            });
-        }
-
-        // Generate bill number
-        const billNumber = await Bill.generateBillNumber();
-
-        // Build items array
-        const items = [];
-
-        // Add operation charges
-        if (referral.operationId) {
-            items.push({
-                itemType: 'Operation',
-                itemName: referral.operationId.operationName,
-                description: referral.operationId.description || '',
-                quantity: 1,
-                unitPrice: referral.operationId.price,
-                totalPrice: referral.operationId.price
-            });
-        }
-
-        // Add bed charges
-        if (referral.bedCharges > 0) {
-            items.push({
-                itemType: 'Bed',
-                itemName: `${referral.assignedBedId?.bedType || 'Bed'} - Room ${referral.assignedBedId?.roomNumber || 'N/A'}`,
-                description: `${referral.estimatedStayDays || 1} day(s) stay`,
-                quantity: referral.estimatedStayDays || 1,
-                unitPrice: referral.assignedBedId?.pricePerDay || 0,
-                totalPrice: referral.bedCharges
-            });
-        }
-
-        // Build bed details
-        const bedDetails = referral.assignedBedId ? {
-            bedId: referral.assignedBedId._id,
-            bedType: referral.assignedBedId.bedType,
-            roomNumber: referral.assignedBedId.roomNumber,
-            bedNumber: referral.assignedBedId.bedNumber,
-            daysStayed: referral.estimatedStayDays || 0,
-            bedCharges: referral.bedCharges || 0
-        } : undefined;
-
-        // Build operation details
-        const operationDetails = referral.operationId ? {
-            operationId: referral.operationId._id,
-            operationName: referral.operationId.operationName,
-            operationCharges: referral.operationId.price
-        } : undefined;
-
-        // Create bill
-        const bill = await Bill.create({
-            hospitalId: referral.hospitalId,
-            billNumber,
-            patientName: referral.patientName,
-            patientPhone: referral.patientPhone,
-            patientEmail: referral.patientEmail,
-            referralId: referral._id,
-            assignedDoctorId: referral.assignedDoctorId?._id,
-            items,
-            subtotal: referral.totalPrice || referral.estimatedPrice,
-            tax: 0,
-            discount: 0,
-            totalAmount: referral.totalPrice || referral.estimatedPrice,
-            bedDetails,
-            operationDetails,
-            paymentStatus: 'pending'
-        });
-
-        const populatedBill = await Bill.findById(bill._id)
-            .populate('hospitalId', 'name address phone email')
-            .populate('assignedDoctorId', 'name specialization email phone')
-            .populate('referralId', 'status urgency careType')
-            .populate('bedDetails.bedId', 'bedType roomNumber bedNumber pricePerDay')
-            .populate('operationDetails.operationId', 'operationName price duration');
-
-        res.status(201).json({
-            success: true,
-            message: "Bill created from referral successfully",
-            data: populatedBill
-        });
-
-    } catch (error) {
-        console.error("Error creating bill from referral:", error);
-        res.status(500).json({
-            success: false,
-            message: "Server error while creating bill from referral",
-            error: error.message
-        });
+    if (!referral) {
+      return res.status(404).json({
+        success: false,
+        message: 'Referral not found',
+      });
     }
-};
 
+    // Check if referral is completed
+    if (referral.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Referral must be completed before generating bill',
+      });
+    }
+
+    // Check if bill already exists for this referral
+    const existingBill = await Bill.findOne({ referralId: referralId });
+    if (existingBill) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bill already exists for this referral',
+        billNumber: existingBill.billNumber,
+      });
+    }
+
+    // Generate unique bill number
+    const billNumber = await Bill.generateBillNumber();
+
+    // ✅ BUILD ITEMS ARRAY - Include BOTH operation AND bed charges
+    const items = [];
+    console.log(existingBill)
+    // 1. Add Operation Charges (if exists)
+    if (referral.operationId) {
+      items.push({
+        itemType: 'Operation',
+        itemName: referral.operationId.name || 'Surgical Operation',
+        description: `Operation performed on ${new Date(referral.operationDate).toLocaleDateString()}`,
+        quantity: 1,
+        unitPrice: referral.operationId.price || 0,
+        totalPrice: referral.operationId.price || 0,
+      });
+    }
+
+    // 2. Add Bed Charges (if exists)
+    if (referral.bedId && referral.assignedDate && referral.dischargeDate) {
+      // Calculate days stayed
+      const admissionDate = new Date(referral.assignedDate);
+      const dischargeDate = new Date(referral.dischargeDate);
+      const daysStayed = Math.ceil((dischargeDate - admissionDate) / (1000 * 60 * 60 * 24)) || 1;
+      
+      const pricePerDay = referral.bedId.pricePerDay || 0;
+      const totalBedCharges = pricePerDay * daysStayed;
+
+      items.push({
+        itemType: 'Bed',
+        itemName: `${referral.bedId.bedType} - Room ${referral.bedId.roomNumber}`,
+        description: `${daysStayed} day(s) stay from ${admissionDate.toLocaleDateString()} to ${dischargeDate.toLocaleDateString()}`,
+        quantity: daysStayed,
+        unitPrice: pricePerDay,
+        totalPrice: totalBedCharges,
+      });
+    }
+
+    // 3. Calculate subtotal from all items
+    const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+
+    // 4. Calculate tax (5% of subtotal)
+    const tax = subtotal * 0.05;
+
+    // 5. Calculate total amount
+    const totalAmount = subtotal + tax;
+
+    // ✅ CREATE BILL WITH COMPLETE DATA
+    const billData = {
+      hospitalId: referral.hospitalId._id,
+      
+      // Patient Information
+      patientName: referral.patientName,
+      patientPhone: referral.patientPhone,
+      patientEmail: referral.patientEmail || null,
+      patientAddress: referral.patientAddress || '',
+      
+      // Bill Details
+      billNumber: billNumber,
+      referralId: referralId,
+      assignedDoctorId: referral.doctorId?._id || null,
+      
+      // Items (Operation + Bed + any other charges)
+      items: items,
+      
+      // Pricing
+      subtotal: subtotal,
+      tax: tax,
+      discount: 0,
+      totalAmount: totalAmount,
+      
+      // Payment Information
+      paymentStatus: 'pending',
+      amountPaid: 0,
+      amountDue: totalAmount,
+      
+      // Bed Details (for reference)
+      bedDetails: referral.bedId ? {
+        bedId: referral.bedId._id,
+        bedType: referral.bedId.bedType,
+        roomNumber: referral.bedId.roomNumber,
+        bedNumber: referral.bedId.bedNumber,
+        admissionDate: referral.assignedDate,
+        dischargeDate: referral.dischargeDate,
+        daysStayed: Math.ceil((new Date(referral.dischargeDate) - new Date(referral.assignedDate)) / (1000 * 60 * 60 * 24)) || 1,
+        bedCharges: items.find(item => item.itemType === 'Bed')?.totalPrice || 0,
+      } : null,
+      
+      // Operation Details (for reference)
+      operationDetails: referral.operationId ? {
+        operationId: referral.operationId._id,
+        operationName: referral.operationId.name,
+        operationDate: referral.operationDate,
+        operationCharges: referral.operationId.price || 0,
+      } : null,
+      
+      // Bill Date
+      billDate: new Date(),
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+    };
+
+    // Create the bill
+    const bill = await Bill.create(billData);
+
+    // Populate bill for response
+    const populatedBill = await Bill.findById(bill._id)
+      .populate('hospitalId', 'name email phone address')
+      .populate('assignedDoctorId', 'name specialization')
+      .populate('referralId');
+
+    console.log('✅ Bill created successfully:', bill.billNumber);
+    console.log('Items in bill:', bill.items.length);
+    console.log('Total amount:', bill.totalAmount);
+
+    res.status(201).json({
+      success: true,
+      message: 'Bill created successfully',
+      data: populatedBill,
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating bill from referral:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while creating bill',
+      error: error.message,
+    });
+  }
+};
 // ==================== GET ALL HOSPITAL BILLS ====================
 /**
  * @route   GET /api/bill/hospital

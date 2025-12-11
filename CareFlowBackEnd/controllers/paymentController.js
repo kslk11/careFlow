@@ -25,7 +25,8 @@ exports.createPaymentOrder = async (req, res) => {
     // Find the bill
     const bill = await Bill.findById(billId)
       .populate('hospitalId', 'name')
-      .populate('userId', 'name email');
+     
+      console.log("bill",bill)
 
     if (!bill) {
       return res.status(404).json({
