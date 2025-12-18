@@ -32,7 +32,7 @@ const RazorpayPayment = ({
 
       // Step 1: Create Razorpay order from backend
       const orderResponse = await axios.post(
-        'https://careflow-lsf5.onrender.com/api/payment/create-order',
+        'http://localhost:8000/api/payment/create-order',
         {
           billId: bill._id,
           amount: amount,
@@ -120,7 +120,7 @@ const RazorpayPayment = ({
 
       // Verify payment with backend
       const verifyResponse = await axios.post(
-        'https://careflow-lsf5.onrender.com/api/payment/verify',
+        'http://localhost:8000/api/payment/verify',
         {
           razorpay_order_id: response.razorpay_order_id,
           razorpay_payment_id: response.razorpay_payment_id,
@@ -161,7 +161,7 @@ const RazorpayPayment = ({
     try {
       // Log failure to backend
       await axios.post(
-        'https://careflow-lsf5.onrender.com/api/payment/failure',
+        'http://localhost:8000/api/payment/failure',
         {
           orderId: error.metadata?.order_id,
           paymentId: error.metadata?.payment_id,

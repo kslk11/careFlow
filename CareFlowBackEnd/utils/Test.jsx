@@ -88,7 +88,7 @@ useEffect(() => {
 
 const fetchBeds = async () => {
   try {
-    const res = await axios.get("https://careflow-lsf5.onrender.com/api/bed/hospital", config);
+    const res = await axios.get("http://localhost:8000/api/bed/hospital", config);
     setBeds(res.data);
   } catch (error) {
     console.error("Error fetching beds:", error);
@@ -102,7 +102,7 @@ const handleCreateBed = async (e) => {
   setLoading(true);
   try {
     await axios.post(
-      "https://careflow-lsf5.onrender.com/api/bed/create",
+      "http://localhost:8000/api/bed/create",
       bedForm,
       config
     );
@@ -140,7 +140,7 @@ const handleUpdateBed = async (e) => {
   setLoading(true);
   try {
     await axios.put(
-      `https://careflow-lsf5.onrender.com/api/bed/update/${editingBed._id}`,
+      `http://localhost:8000/api/bed/update/${editingBed._id}`,
       bedForm,
       config
     );
@@ -161,7 +161,7 @@ const handleDeleteBed = async (bedId) => {
 
   setLoading(true);
   try {
-    await axios.delete(`https://careflow-lsf5.onrender.com/api/bed/${bedId}`, config);
+    await axios.delete(`http://localhost:8000/api/bed/${bedId}`, config);
     alert("Bed deleted successfully!");
     fetchBeds();
   } catch (error) {
@@ -178,7 +178,7 @@ const handleReleaseBed = async (bedId) => {
   setLoading(true);
   try {
     await axios.patch(
-      `https://careflow-lsf5.onrender.com/api/bed/release/${bedId}`,
+      `http://localhost:8000/api/bed/release/${bedId}`,
       {},
       config
     );
@@ -251,7 +251,7 @@ useEffect(() => {
 
 const fetchReferrals = async () => {
   try {
-    const res = await axios.get("https://careflow-lsf5.onrender.com/api/refer/hospital", config);
+    const res = await axios.get("http://localhost:8000/api/refer/hospital", config);
     setReferrals(res.data);
   } catch (error) {
     console.error("Error fetching referrals:", error);
@@ -277,7 +277,7 @@ const fetchAvailableBedsForCareType = async (careType) => {
     }
     
     const res = await axios.get(
-      `https://careflow-lsf5.onrender.com/api/bed/hospital?isAvailable=true&status=Available${bedType ? `&bedType=${bedType}` : ''}`,
+      `http://localhost:8000/api/bed/hospital?isAvailable=true&status=Available${bedType ? `&bedType=${bedType}` : ''}`,
       config
     );
     setAvailableBedsForReferral(res.data);
@@ -293,7 +293,7 @@ const handleAcceptReferral = async (e) => {
   setLoading(true);
   try {
     await axios.patch(
-      `https://careflow-lsf5.onrender.com/api/refer/accept/${selectedReferralForAccept._id}`,
+      `http://localhost:8000/api/refer/accept/${selectedReferralForAccept._id}`,
       acceptReferralForm,
       config
     );
@@ -319,7 +319,7 @@ const handleRejectReferral = async (referralId) => {
   setLoading(true);
   try {
     await axios.patch(
-      `https://careflow-lsf5.onrender.com/api/refer/reject/${referralId}`,
+      `http://localhost:8000/api/refer/reject/${referralId}`,
       { rejectionReason },
       config
     );
@@ -339,7 +339,7 @@ const handleCompleteReferral = async (referralId) => {
   setLoading(true);
   try {
     await axios.patch(
-      `https://careflow-lsf5.onrender.com/api/refer/complete/${referralId}`,
+      `http://localhost:8000/api/refer/complete/${referralId}`,
       {},
       config
     );
@@ -369,7 +369,7 @@ const resetAcceptReferralForm = () => {
 // Add these fetch functions
 const fetchOperations = async () => {
   try {
-    const res = await axios.get("https://careflow-lsf5.onrender.com/api/operation/hospital", config);
+    const res = await axios.get("http://localhost:8000/api/operation/hospital", config);
     setOperations(res.data);
   } catch (error) {
     console.error("Error fetching operations:", error);
@@ -384,7 +384,7 @@ const handleCreateOperation = async (e) => {
 
   try {
     await axios.post(
-      "https://careflow-lsf5.onrender.com/api/operation/create",
+      "http://localhost:8000/api/operation/create",
       operationForm,
       config
     );
@@ -419,7 +419,7 @@ const handleUpdateOperation = async (e) => {
   setLoading(true);
   try {
     await axios.put(
-      `https://careflow-lsf5.onrender.com/api/operation/update/${editingOperation._id}`,
+      `http://localhost:8000/api/operation/update/${editingOperation._id}`,
       operationForm,
       config
     );
@@ -441,7 +441,7 @@ const handleDeleteOperation = async (operationId) => {
   setLoading(true);
   try {
     await axios.delete(
-      `https://careflow-lsf5.onrender.com/api/operation/${operationId}`,
+      `http://localhost:8000/api/operation/${operationId}`,
       config
     );
     alert("Operation deleted successfully!");
@@ -524,7 +524,7 @@ const resetOperationForm = () => {
     // ==================== FETCH DEPARTMENTS ====================
     const fetchDepartments = async () => {
         try {
-            const res = await axios.get("https://careflow-lsf5.onrender.com/api/department/get");
+            const res = await axios.get("http://localhost:8000/api/department/get");
             setAvailableDepartments(res.data);
         } catch (error) {
             console.error("Error fetching departments:", error);
@@ -534,7 +534,7 @@ const resetOperationForm = () => {
     // ==================== DOCTOR FUNCTIONS ====================
     const fetchDoctors = async () => {
         try {
-            const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/getdocs", config);
+            const res = await axios.get("http://localhost:8000/api/hospital/getdocs", config);
             setDoctors(res.data);
         } catch (err) {
             console.log("Error fetching doctors:", err);
@@ -601,7 +601,7 @@ const resetOperationForm = () => {
         setLoading(true);
         try {
             await axios.post(
-                "https://careflow-lsf5.onrender.com/api/doctor/register",
+                "http://localhost:8000/api/doctor/register",
                 { ...newDoctor, hospitalId: hospitalInfo.userId },
                 config
             );
@@ -637,7 +637,7 @@ const resetOperationForm = () => {
     // ==================== PROFILE FUNCTIONS ====================
     const fetchProfile = async () => {
         try {
-            const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/getProfile", config);
+            const res = await axios.get("http://localhost:8000/api/hospital/getProfile", config);
             setProfile(res.data);
             setProfileForm({
                 name: res.data.name || "",
@@ -656,7 +656,7 @@ const resetOperationForm = () => {
         setLoading(true);
         try {
             const res = await axios.put(
-                "https://careflow-lsf5.onrender.com/api/hospital/profile",
+                "http://localhost:8000/api/hospital/profile",
                 profileForm,
                 config
             );
@@ -683,7 +683,7 @@ const resetOperationForm = () => {
         setLoading(true);
         try {
             await axios.put(
-                "https://careflow-lsf5.onrender.com/api/hospital/resetpassword",
+                "http://localhost:8000/api/hospital/resetpassword",
                 {
                     currentPassword: passwordForm.currentPassword,
                     newPassword: passwordForm.newPassword,

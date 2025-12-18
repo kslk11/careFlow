@@ -466,7 +466,7 @@ exports.getBillById = async (req, res) => {
             .populate('hospitalId', 'name address phone email')
             .populate('assignedDoctorId', 'name specialization email phone qualification')
             .populate('referralId')
-            .populate('bedDetails.bedId', 'bedType roomNumber bedNumber floor pricePerDay amenities')
+            .populate('bedDetails.assignedBedId', 'bedType roomNumber bedNumber floor pricePerDay amenities')
             .populate('operationDetails.operationId', 'operationName price duration description');
 
         if (!bill) {

@@ -110,7 +110,7 @@ const DoctorDashboard = () => {
 
   const fetchReferrals = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/refer/doctor", config);
+      const res = await axios.get("http://localhost:8000/api/refer/doctor", config);
       setReferrals(res.data);
     } catch (error) {
       console.error("Error fetching referrals:", error);
@@ -119,7 +119,7 @@ const DoctorDashboard = () => {
 
   const fetchHospitals = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/all");
+      const res = await axios.get("http://localhost:8000/api/hospital/all");
       setHospitals(res.data);
     } catch (error) {
       console.error("Error fetching hospitals:", error);
@@ -134,7 +134,7 @@ const DoctorDashboard = () => {
         return;
       }
 
-      const res = await axios.get(`https://careflow-lsf5.onrender.com/api/operation/by-hospital/${hospitalId}`);
+      const res = await axios.get(`http://localhost:8000/api/operation/by-hospital/${hospitalId}`);
       
       // Filter operations by doctor's specialization/department
       const filteredOps = res.data.filter(operation => {
@@ -183,7 +183,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       await axios.post(
-        "https://careflow-lsf5.onrender.com/api/refer/create-from-prescription",
+        "http://localhost:8000/api/refer/create-from-prescription",
         {
           prescriptionId: selectedPrescriptionForRefer._id,
           ...referFromPrescriptionForm
@@ -208,7 +208,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/refer/cancel/${referralId}`,
+        `http://localhost:8000/api/refer/cancel/${referralId}`,
         {},
         config
       );
@@ -239,7 +239,7 @@ const DoctorDashboard = () => {
   // ==================== FETCH FUNCTIONS ====================
   const fetchHospitalInfo = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/doctor/hospital", config);
+      const res = await axios.get("http://localhost:8000/api/doctor/hospital", config);
       setHospitalInfo(res.data);
     } catch (error) {
       console.error("Error fetching hospital info:", error);
@@ -248,7 +248,7 @@ const DoctorDashboard = () => {
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/doctor/getDoctor", config);
+      const res = await axios.get("http://localhost:8000/api/doctor/getDoctor", config);
       setProfile(res.data);
       setProfileForm({
         name: res.data.name || "",
@@ -268,7 +268,7 @@ const DoctorDashboard = () => {
 
   const fetchAppointments = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/appointment/doctor", config);
+      const res = await axios.get("http://localhost:8000/api/appointment/doctor", config);
       setAppointments(res.data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -277,7 +277,7 @@ const DoctorDashboard = () => {
 
   const fetchPrescriptions = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/prescription/doctor", config);
+      const res = await axios.get("http://localhost:8000/api/prescription/doctor", config);
       setPrescriptions(res.data);
     } catch (error) {
       console.error("Error fetching prescriptions:", error);
@@ -289,7 +289,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/appointment/approve/${appointmentId}`,
+        `http://localhost:8000/api/appointment/approve/${appointmentId}`,
         {},
         config
       );
@@ -309,7 +309,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/appointment/reject/${appointmentId}`,
+        `http://localhost:8000/api/appointment/reject/${appointmentId}`,
         {},
         config
       );
@@ -327,7 +327,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/appointment/complete/${appointmentId}`,
+        `http://localhost:8000/api/appointment/complete/${appointmentId}`,
         {},
         config
       );
@@ -374,7 +374,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       await axios.post(
-        "https://careflow-lsf5.onrender.com/api/prescription/create",
+        "http://localhost:8000/api/prescription/create",
         {
           appointmentId: selectedAppointment._id,
           patientId: selectedAppointment.userId._id,
@@ -408,7 +408,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       await axios.delete(
-        "https://careflow-lsf5.onrender.com/api/prescription/delete",
+        "http://localhost:8000/api/prescription/delete",
         {
           ...config,
           data: { appointmentId },
@@ -439,7 +439,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       const res = await axios.put(
-        "https://careflow-lsf5.onrender.com/api/doctor/profile",
+        "http://localhost:8000/api/doctor/profile",
         profileForm,
         config
       );
@@ -466,7 +466,7 @@ const DoctorDashboard = () => {
     setLoading(true);
     try {
       await axios.put(
-        "https://careflow-lsf5.onrender.com/api/doctor/change-password",
+        "http://localhost:8000/api/doctor/change-password",
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
@@ -505,7 +505,7 @@ const DoctorDashboard = () => {
   };
 
   const handlefetchreferDeatails = async (referId) => {
-    const res = await axios.get(`https://careflow-lsf5.onrender.com/api/refer/gethospital/${referId}`, config);
+    const res = await axios.get(`http://localhost:8000/api/refer/gethospital/${referId}`, config);
     setFetchReferraldetails(res.data);
   };
 

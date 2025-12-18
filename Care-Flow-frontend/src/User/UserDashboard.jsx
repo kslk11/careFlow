@@ -252,7 +252,7 @@ const toggleChatBot = () => {
   // ==================== FETCH FUNCTIONS ====================
   const fetchHospitals = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/hospital/approved");
+      const res = await axios.get("http://localhost:8000/api/hospital/approved");
       setHospitals(res.data);
     } catch (error) {
       console.error("Error fetching hospitals:", error);
@@ -263,7 +263,7 @@ const toggleChatBot = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `https://careflow-lsf5.onrender.com/api/hospital/getdoctorsparams/${hospitalId}`
+        `http://localhost:8000/api/hospital/getdoctorsparams/${hospitalId}`
       );
       setHospitalDoctors(res.data);
       setSelectedHospital(hospitals.find((h) => h._id === hospitalId));
@@ -278,7 +278,7 @@ const toggleChatBot = () => {
 const fetchMyReviews = async () => {
   setLoadingReviews(true);
   try {
-    const response = await axios.get('https://careflow-lsf5.onrender.com/api/review/user/mine', config);
+    const response = await axios.get('http://localhost:8000/api/review/user/mine', config);
     setMyReviews(response.data.data || { doctorReviews: [], hospitalReviews: [] });
   } catch (error) {
     console.error('Error fetching my reviews:', error);
@@ -289,7 +289,7 @@ const fetchMyReviews = async () => {
 };
   const fetchProfile = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/user/getUser", config);
+      const res = await axios.get("http://localhost:8000/api/user/getUser", config);
       setProfile(res.data);
       setProfileForm({
         name: res.data.name || "",
@@ -307,7 +307,7 @@ const fetchMyReviews = async () => {
 
   const fetchAppointments = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/appointment/user", config);
+      const res = await axios.get("http://localhost:8000/api/appointment/user", config);
       setAppointments(res.data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -316,7 +316,7 @@ const fetchMyReviews = async () => {
 
   const fetchReferrals = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/refer/user", config);
+      const res = await axios.get("http://localhost:8000/api/refer/user", config);
       setReferrals(res.data);
     } catch (error) {
       console.error("Error fetching referrals:", error);
@@ -326,7 +326,7 @@ const fetchMyReviews = async () => {
   // NEW: Fetch Bills Function
   const fetchBills = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/bill/user", config);
+      const res = await axios.get("http://localhost:8000/api/bill/user", config);
       console.log("hello")
       setBills(res.data);
     } catch (error) {
@@ -339,7 +339,7 @@ const fetchMyReviews = async () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.put("https://careflow-lsf5.onrender.com/api/user/profile", profileForm, config);
+      const res = await axios.put("http://localhost:8000/api/user/profile", profileForm, config);
       setProfile(res.data);
       localStorage.setItem("Userinfo", JSON.stringify({ ...userInfo, user: res.data }));
       alert("Profile updated successfully!");
@@ -361,7 +361,7 @@ const fetchMyReviews = async () => {
     setLoading(true);
     try {
       await axios.put(
-        "https://careflow-lsf5.onrender.com/api/user/resetpassword",
+        "http://localhost:8000/api/user/resetpassword",
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
@@ -396,7 +396,7 @@ const fetchMyReviews = async () => {
     }
     try {
       await axios.patch(
-        `https://careflow-lsf5.onrender.com/api/appointment/cancel/${appointmentId}`,
+        `http://localhost:8000/api/appointment/cancel/${appointmentId}`,
         {},
         config
       );
@@ -458,7 +458,7 @@ const fetchMyReviews = async () => {
       };
 
       await axios.post(
-        `https://careflow-lsf5.onrender.com/api/bill/payment/${selectedBill._id}`,
+        `http://localhost:8000/api/bill/payment/${selectedBill._id}`,
         paymentData,
         config
       );

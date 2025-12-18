@@ -28,7 +28,7 @@ const PrescriptionManager = () => {
 
   const fetchPrescriptions = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/prescription/doctor", config);
+      const res = await axios.get("http://localhost:8000/api/prescription/doctor", config);
       setPrescriptions(res.data);
     } catch (error) {
       console.error("Error fetching prescriptions:", error);
@@ -37,7 +37,7 @@ const PrescriptionManager = () => {
 
   const fetchCompletedAppointments = async () => {
     try {
-      const res = await axios.get("https://careflow-lsf5.onrender.com/api/appointment/doctor", config);
+      const res = await axios.get("http://localhost:8000/api/appointment/doctor", config);
       // Filter only completed appointments without prescriptions
       const completed = res.data.filter(apt => 
         apt.status?.toLowerCase() === "completed" || apt.status?.toLowerCase() === "approved"
@@ -74,7 +74,7 @@ const PrescriptionManager = () => {
 
   try {
     await axios.post(
-      "https://careflow-lsf5.onrender.com/api/prescription/create",
+      "http://localhost:8000/api/prescription/create",
       {
         appointmentId:            selectedAppointment._id,
         patientId:               selectedAppointment.userId._id,
@@ -107,7 +107,7 @@ const PrescriptionManager = () => {
     setLoading(true);
     try {
       await axios.delete(
-        "https://careflow-lsf5.onrender.com/api/prescription/delete",
+        "http://localhost:8000/api/prescription/delete",
         { ...config, data: { appointmentId } }
       );
       alert("Prescription deleted successfully!");

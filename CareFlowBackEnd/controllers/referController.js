@@ -565,34 +565,41 @@ exports.assignBedToReferral = async (req, res) => {
     const { referralId } = req.params;
     const {
       bedId,
-      assignedDate,      // ✅ Changed from appointmentDate
-      dischargeDate,     // ✅ NEW - Required for bill calculation
+      appointmentDate,
+      dischargeDate,
       assignedDoctorId,
       hospitalResponse
     } = req.body;
 
-    console.log('Assigning bed to referral:', { referralId, bedId, assignedDate, dischargeDate });
+    console.log("Assigning bed to referral:", {
+      referralId,
+      bedId,
+      appointmentDate,
+      dischargeDate,
+      assignedDoctorId,
+      hospitalResponse
+    });
 
-    // ✅ VALIDATE REQUIRED FIELDS
-    if (!bedId || !assignedDate || !dischargeDate) {
+    // REQUIRED FIELDS
+    if (!bedId || !appointmentDate || !dischargeDate) {
       return res.status(400).json({
         success: false,
-        message: "Bed ID, assigned date, and discharge date are required"
+        message: "Bed ID, appointment date and discharge date are required"
       });
     }
 
-    // Validate discharge date is after assigned date
-    if (new Date(dischargeDate) <= new Date(assignedDate)) {
+    // discharge must be after appointment
+    if (new Date(dischargeDate) <= new Date(appointmentDate)) {
       return res.status(400).json({
         success: false,
-        message: "Discharge date must be after assigned date"
+        message: "Discharge date must be after appointment date"
       });
     }
 
-    // ✅ FIND REFERRAL
+    // FIND REFERRAL
     const referral = await Refer.findById(referralId)
-      .populate('userId', 'name email phone')
-      .populate('operationId', 'operationName price');
+      .populate("userId", "name email phone")
+      .populate("operationId", "operationName price");
 
     if (!referral) {
       return res.status(404).json({
@@ -601,27 +608,22 @@ exports.assignBedToReferral = async (req, res) => {
       });
     }
 
-    console.log('Referral status:', referral.status);
-
-    // ✅ CHECK REFERRAL STATUS
-    if (referral.status !== 'accepted') {
+    if (referral.status !== "accepted") {
       return res.status(400).json({
         success: false,
         message: "Referral must be in 'accepted' status to assign bed"
       });
     }
 
-    // Check if bed already assigned
-    if (referral.bedId) {
+    if (referral.assignedBedId) {
       return res.status(400).json({
         success: false,
-        message: "Bed is already assigned to this referral"
+        message: "Bed already assigned"
       });
     }
 
-    // ✅ FIND AND VALIDATE BED
+    // FIND BED
     const bed = await Bed.findById(bedId);
-
     if (!bed) {
       return res.status(404).json({
         success: false,
@@ -629,15 +631,13 @@ exports.assignBedToReferral = async (req, res) => {
       });
     }
 
-    // Check bed availability
-    if (bed.status !== 'available' && bed.status !== 'Available') {
+    if (bed.status !== "available" && bed.status !== "Available") {
       return res.status(400).json({
         success: false,
-        message: `Bed is currently ${bed.status}. Please select an available bed.`
+        message: `Bed is currently ${bed.status}`
       });
     }
 
-    // Verify bed belongs to same hospital
     if (bed.hospitalId.toString() !== referral.hospitalId.toString()) {
       return res.status(403).json({
         success: false,
@@ -645,7 +645,7 @@ exports.assignBedToReferral = async (req, res) => {
       });
     }
 
-    // ✅ VERIFY DOCTOR IF PROVIDED
+    // VERIFY DOCTOR
     if (assignedDoctorId) {
       const doctor = await Doctor.findById(assignedDoctorId);
 
@@ -664,64 +664,48 @@ exports.assignBedToReferral = async (req, res) => {
       }
     }
 
-    // ✅ CALCULATE BED CHARGES
-    const admissionDate = new Date(assignedDate);
+    // CALCULATE BED CHARGES
+    const admission = new Date(appointmentDate);
     const discharge = new Date(dischargeDate);
-    const daysStayed = Math.max(1, Math.ceil((discharge - admissionDate) / (1000 * 60 * 60 * 24)));
+    const daysStayed = Math.max(
+      1,
+      Math.ceil((discharge - admission) / (1000 * 60 * 60 * 24))
+    );
     const bedCharges = daysStayed * (bed.pricePerDay || 0);
 
-    console.log('Bed charges calculation:', {
-      daysStayed,
-      pricePerDay: bed.pricePerDay,
-      totalBedCharges: bedCharges
-    });
-
-    // ✅ UPDATE BED STATUS
-    bed.status = 'occupied';
+    // UPDATE BED
+    bed.status = "Occupied";
     bed.currentReferralId = referral._id;
     bed.currentPatientName = referral.patientName;
-    bed.occupiedFrom = assignedDate;
+    bed.occupiedFrom = appointmentDate;
     bed.occupiedUntil = dischargeDate;
     await bed.save();
 
-    console.log('✅ Bed status updated to occupied');
-
-    // ✅ UPDATE REFERRAL
-    referral.bedId = bedId;
-    referral.assignedDate = assignedDate;
+    // UPDATE REFERRAL
+    referral.assignedBedId = bedId;
+    referral.assignedDate = appointmentDate;
     referral.dischargeDate = dischargeDate;
-    referral.bedAssignedBy = req.user.id; // Hospital who assigned
+    referral.bedAssignedBy = req.user.id;
 
-    if (assignedDoctorId) {
-      referral.assignedDoctorId = assignedDoctorId;
-    }
-
-    if (hospitalResponse) {
-      referral.hospitalResponse = hospitalResponse;
-    }
-
-    // ✅ DON'T CHANGE STATUS YET - Keep as 'accepted'
-    // Status will change to 'completed' when hospital clicks "Complete & Generate Bill"
-
+    if (assignedDoctorId) referral.assignedDoctorId = assignedDoctorId;
+    if (hospitalResponse) referral.hospitalResponse = hospitalResponse;
+    referral.status = 'completed'
     await referral.save();
 
-    console.log('✅ Referral updated with bed assignment');
-
-    // ✅ POPULATE AND RETURN
     const updatedReferral = await Refer.findById(referralId)
-      .populate('referringDoctorId', 'name specialization email phone')
-      .populate('hospitalId', 'name address phone email')
-      .populate('operationId', 'operationName price duration')
-      .populate('assignedDoctorId', 'name specialization email phone')
-      .populate('bedId', 'bedType roomNumber bedNumber floor pricePerDay status');
+      .populate("referringDoctorId", "name specialization email phone")
+      .populate("hospitalId", "name address phone email")
+      .populate("operationId", "operationName price duration")
+      .populate("assignedDoctorId", "name specialization email phone")
+      .populate("assignedBedId", "bedType roomNumber bedNumber floor pricePerDay status");
 
     res.status(200).json({
       success: true,
       message: "Bed assigned successfully",
       data: {
         referral: updatedReferral,
-        bedCharges: bedCharges,
-        daysStayed: daysStayed,
+        bedCharges,
+        daysStayed,
         totalEstimate: (referral.operationId?.price || 0) + bedCharges
       }
     });

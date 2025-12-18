@@ -81,8 +81,9 @@ const ChatBotButton = ({ onClick, isOpen, darkMode = false, unreadCount = 0 }) =
         </div>
       )}
 
+      
       {/* Welcome Message (First Time) */}
-      {!isOpen && unreadCount === 0 && (
+      {/* {!isOpen && unreadCount === 0 && (
         <div className="absolute bottom-20 right-0 bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 w-64 animate-slideInRight border border-gray-200 dark:border-gray-700">
           <div className="flex items-start space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -105,7 +106,7 @@ const ChatBotButton = ({ onClick, isOpen, darkMode = false, unreadCount = 0 }) =
           </div>
           <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white dark:bg-gray-800 transform rotate-45 border-r border-b border-gray-200 dark:border-gray-700"></div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
