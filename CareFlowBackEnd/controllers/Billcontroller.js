@@ -297,12 +297,6 @@ exports.createBillFromReferral = async (req, res) => {
   }
 };
 
-// ==================== GET ALL HOSPITAL BILLS ====================
-/**
- * @route   GET /api/bill/hospital
- * @desc    Get all bills for a hospital
- * @access  Private (Hospital)
- */
 
 exports.getAllbills = async (req, res) => {
     console.log("req.user =", req.user);
@@ -369,22 +363,16 @@ exports.getHospitalBills = async (req, res) => {
     }
 };
 
-// ==================== GET HOSPITAL INCOME STATS ====================
-/**
- * @route   GET /api/bill/income-stats
- * @desc    Get detailed income statistics for hospital
- * @access  Private (Hospital)
- */
+
 exports.getIncomeStats = async (req, res) => {
     try {
         const { year, month } = req.query;
 
         const query = {
             hospitalId: req.user.id,
-            paymentStatus: 'paid' // Only count paid bills
+            paymentStatus: 'paid' 
         };
 
-        // Filter by year and month if provided
         if (year) {
             const startDate = new Date(year, month ? month - 1 : 0, 1);
             const endDate = month
@@ -399,12 +387,10 @@ exports.getIncomeStats = async (req, res) => {
 
         const bills = await Bill.find(query);
 
-        // Calculate statistics
         const totalIncome = bills.reduce((sum, bill) => sum + bill.totalAmount, 0);
 
         const totalBills = bills.length;
 
-        // Monthly breakdown
         const monthlyData = {};
         bills.forEach(bill => {
             const month = new Date(bill.billDate).toLocaleString('default', { month: 'short', year: 'numeric' });
@@ -452,12 +438,7 @@ exports.getIncomeStats = async (req, res) => {
     }
 };
 
-// ==================== GET SINGLE BILL ====================
-/**
- * @route   GET /api/bill/:billId
- * @desc    Get single bill details
- * @access  Private
- */
+
 exports.getBillById = async (req, res) => {
     try {
         const { billId } = req.params;

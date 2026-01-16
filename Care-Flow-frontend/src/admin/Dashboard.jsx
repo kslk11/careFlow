@@ -59,7 +59,7 @@ const AdminDashboard = () => {
   // ==================== DEPARTMENT FUNCTIONS ====================
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/department/get");
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/department/get");
       setDepartments(res.data);
     } catch (error) {
       console.error("Error fetching departments:", error);
@@ -71,7 +71,7 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       await axios.post(
-        "http://localhost:8000/api/department/add",
+        "https://careflow-lsf5.onrender.com/api/department/add",
         departmentForm,
         config
       );
@@ -90,10 +90,10 @@ const AdminDashboard = () => {
   const fetchHospitalData = async () => {
     try {
       const [pendingData, approvedData, rejectedData, deletedData] = await Promise.all([
-        axios.get("http://localhost:8000/api/hospital/requests", config),
-        axios.get("http://localhost:8000/api/hospital/approved", config),
-        axios.get("http://localhost:8000/api/hospital/rejected", config),
-        axios.get("http://localhost:8000/api/hospital/deleted", config),
+        axios.get("https://careflow-lsf5.onrender.com/api/hospital/requests", config),
+        axios.get("https://careflow-lsf5.onrender.com/api/hospital/approved", config),
+        axios.get("https://careflow-lsf5.onrender.com/api/hospital/rejected", config),
+        axios.get("https://careflow-lsf5.onrender.com/api/hospital/deleted", config),
       ]);
 
       setPending(pendingData.data);
@@ -108,7 +108,7 @@ const AdminDashboard = () => {
   const approveHospital = async (id) => {
     try {
       await axios.patch(
-        `http://localhost:8000/api/hospital/approve/${id}`,
+        `https://careflow-lsf5.onrender.com/api/hospital/approve/${id}`,
         {},
         config
       );
@@ -123,7 +123,7 @@ const AdminDashboard = () => {
   const rejectHospital = async (id) => {
     try {
       await axios.patch(
-        `http://localhost:8000/api/hospital/reject/${id}`,
+        `https://careflow-lsf5.onrender.com/api/hospital/reject/${id}`,
         {},
         config
       );
@@ -139,7 +139,7 @@ const AdminDashboard = () => {
     if (!window.confirm("Are you sure you want to delete this hospital?")) return;
 
     try {
-      await axios.delete(`http://localhost:8000/api/hospital/delete/${id}`, config);
+      await axios.delete(`https://careflow-lsf5.onrender.com/api/hospital/delete/${id}`, config);
       alert("Hospital deleted");
       fetchHospitalData();
     } catch (error) {
@@ -151,7 +151,7 @@ const AdminDashboard = () => {
   const retrieveHospital = async (id) => {
     try {
       await axios.patch(
-        `http://localhost:8000/api/hospital/retrieve/${id}`,
+        `https://careflow-lsf5.onrender.com/api/hospital/retrieve/${id}`,
         {},
         config
       );
@@ -166,7 +166,7 @@ const AdminDashboard = () => {
   // ==================== PROFILE FUNCTIONS ====================
   const fetchProfile = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/admin/show", config);
+      const res = await axios.get("https://careflow-lsf5.onrender.com/api/admin/show", config);
       setProfile(res.data);
       setProfileForm({
         name: res.data.name || "",
@@ -184,7 +184,7 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       const res = await axios.put(
-        "http://localhost:8000/api/admin/profile",
+        "https://careflow-lsf5.onrender.com/api/admin/profile",
         profileForm,
         config
       );
@@ -211,7 +211,7 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       await axios.put(
-        "http://localhost:8000/api/admin/resetPassword",
+        "https://careflow-lsf5.onrender.com/api/admin/resetPassword",
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,

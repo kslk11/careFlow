@@ -190,7 +190,7 @@ EMAIL_PASS=your-app-password
 
 # URLs
 FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:8000
+BACKEND_URL=https://careflow-lsf5.onrender.com
 ```
 
 ### 3. Frontend Setup
@@ -217,8 +217,8 @@ npm run dev
 ### 5. Access Application
 
 - **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/api-docs (if implemented)
+- **Backend API:** https://careflow-lsf5.onrender.com
+- **API Docs:** https://careflow-lsf5.onrender.com/api-docs (if implemented)
 
 ---
 

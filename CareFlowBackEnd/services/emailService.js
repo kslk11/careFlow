@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
 
-// Create email transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
     service: 'gmail',
@@ -11,13 +10,12 @@ const createTransporter = () => {
   });
 };
 
-// Send email function
 const sendEmail = async (to, subject, html) => {
   try {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"CareFlow System" <${process.env.EMAIL_USER || 'your-email@gmail.com'}>`,
+      from: `"CareFlow System" <${process.env.USER || 'your-email@gmail.com'}>`,
       to: to,
       subject: subject,
       html: html

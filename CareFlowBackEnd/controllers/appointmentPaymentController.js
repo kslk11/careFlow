@@ -1,14 +1,9 @@
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
-const User = require('../models/User'); // ✅ ADD THIS
+const User = require('../models/User'); 
 const { createRazorpayOrder, verifyRazorpaySignature } = require('../utils/razorpayHelper');
 const { sendEmail } = require('../services/emailService');
 
-/**
- * @desc    Create payment order for appointment booking
- * @route   POST /api/appointment-payment/create-order
- * @access  Private (User)
- */
 exports.createAppointmentPaymentOrder = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -28,7 +23,6 @@ exports.createAppointmentPaymentOrder = async (req, res) => {
 
     console.log('Creating appointment payment order:', { doctorId, date, time });
 
-    // Validate required fields
     if (!doctorId || !date || !time) {
       return res.status(400).json({
         success: false,
@@ -36,7 +30,6 @@ exports.createAppointmentPaymentOrder = async (req, res) => {
       });
     }
 
-    // ✅ GET USER DETAILS
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -45,7 +38,6 @@ exports.createAppointmentPaymentOrder = async (req, res) => {
       });
     }
 
-    // Find doctor
     const doctor = await Doctor.findById(doctorId).populate('hospitalId', 'name address');
     if (!doctor) {
       return res.status(404).json({
@@ -56,18 +48,15 @@ exports.createAppointmentPaymentOrder = async (req, res) => {
 
 const consultationFee = Math.max(100, doctor.consultationFee || 500);
 
-    // ✅ CREATE APPOINTMENT WITH PATIENT DETAILS
     const appointmentData = {
       userId: userId,
       doctorId: doctorId,
       hospitalId: hospitalId || doctor.hospitalId?._id,
       
-      // ✅ ADD PATIENT DETAILS FROM USER
       patientName: user.name,
       patientPhone: user.phone,
       patientEmail: user.email || null,
       
-      // Appointment Details
       appointmentDate: date,
       appointmentTime: time,
       status: 'pending',
@@ -76,9 +65,7 @@ const consultationFee = Math.max(100, doctor.consultationFee || 500);
       reason: reason || '',
     };
 
-    // ✅ HANDLE FAMILY MEMBER BOOKING
     if (isSelf === false && familyMemberName) {
-      // If booking for family member, update patient details
       appointmentData.patientName = familyMemberName;
       appointmentData.patientAge = familyMemberAge;
       appointmentData.patientGender = familyMemberGender;
@@ -103,7 +90,6 @@ const razorpayOrder = await createRazorpayOrder(
   }
 );
 
-    // Save order ID to appointment
     appointment.razorpayOrderId = razorpayOrder.id;
     await appointment.save();
 
@@ -143,7 +129,6 @@ exports.verifyAppointmentPayment = async (req, res) => {
 
     console.log('Verifying appointment payment:', { appointmentId, razorpay_payment_id });
 
-    // Verify signature
     const isValid = verifyRazorpaySignature(
       razorpay_order_id,
       razorpay_payment_id,
@@ -157,7 +142,6 @@ exports.verifyAppointmentPayment = async (req, res) => {
       });
     }
 
-    // Find appointment
     const appointment = await Appointment.findById(appointmentId)
       .populate('doctorId', 'name specialization')
       .populate('hospitalId', 'name address')
@@ -170,7 +154,6 @@ exports.verifyAppointmentPayment = async (req, res) => {
       });
     }
 
-    // Verify user owns this appointment
     if (appointment.userId._id.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
@@ -178,7 +161,6 @@ exports.verifyAppointmentPayment = async (req, res) => {
       });
     }
 
-    // Update appointment with payment details
     appointment.paymentStatus = 'paid';
     appointment.paymentMethod = 'razorpay';
     appointment.transactionId = razorpay_payment_id;
@@ -187,7 +169,6 @@ exports.verifyAppointmentPayment = async (req, res) => {
     
     await appointment.save();
 
-    // Send confirmation email
     if (appointment.userId.email) {
       const emailHTML = `
         <!DOCTYPE html>

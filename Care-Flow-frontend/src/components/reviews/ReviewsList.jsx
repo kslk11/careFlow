@@ -35,7 +35,7 @@ const ReviewsList = ({
     setError('');
 
     try {
-      const endpoint = `http://localhost:8000/api/review/${type}/${entityId}`;
+      const endpoint = `https://careflow-lsf5.onrender.com/api/review/${type}/${entityId}`;
       const response = await axios.get(endpoint, {
         params: {
           page: currentPage,
@@ -66,7 +66,7 @@ const ReviewsList = ({
   const handleDeleteReview = async (reviewId) => {
     try {
       await axios.delete(
-        `http://localhost:8000/api/review/${type}/${reviewId}`,
+        `https://careflow-lsf5.onrender.com/api/review/${type}/${reviewId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }

@@ -5,9 +5,6 @@ const Hospital = require('../models/Hospital');
 const { createRazorpayOrder, verifyRazorpaySignature } = require('../utils/razorpayHelper');
 const { sendEmail } = require('../services/emailService');
 
-// @desc    Create new appointment
-// @route   POST /api/appointment/create
-// @access  Private (User)
 exports.createAppointment = async (req, res) => {
   try {
     const {
@@ -26,28 +23,24 @@ exports.createAppointment = async (req, res) => {
 
     const userId = req.user.id;
 
-    // Validate doctor exists
     const doctor = await Doctor.findById(doctorId).populate('hospitalId');
     console.log("doctor",doctor)
     if (!doctor) {
         return res.status(404).json({ message: 'Doctor not found' });
     }
     
-    // Get user data
     const user = await User.findById(userId);
     if (!user) {
         return res.status(404).json({ message: 'User not found' });
     }
     console.log("user",user)
     
-    // Check if appointment date is in the future
     const appointmentDateTime = new Date(appointmentDate);
     if (appointmentDateTime < new Date()) {
         return res.status(400).json({ message: 'Appointment date must be in the future' });
     }
     console.log("user",user)
     
-    // Check if doctor is available on the selected day
     const dayOfWeek = appointmentDateTime.toLocaleDateString('en-US', { weekday: 'long' });
     if (doctor.availableDays && doctor.availableDays.length > 0) {
         if (!doctor.availableDays.includes(dayOfWeek)) {
@@ -58,7 +51,6 @@ exports.createAppointment = async (req, res) => {
     }
     console.log("user",user)
     
-    // Check for duplicate appointment (same doctor, same date, same time)
     const existingAppointment = await Appointment.findOne({
         doctorId,
         appointmentDate: {
@@ -91,7 +83,6 @@ exports.createAppointment = async (req, res) => {
     };
     
     console.log("user",user)
-    // Add patient details based on isSelf
     if (isSelf) {
         appointmentData.patientName = user.name;
         appointmentData.patientEmail = user.email;
@@ -103,11 +94,9 @@ exports.createAppointment = async (req, res) => {
       appointmentData.familyMemberRelation = familyMemberRelation;
       appointmentData.familyMemberAddress = familyMemberAddress;
     }
-    // Create appointment
     const appointment = await Appointment.create(appointmentData);
     
     console.log("user",user)
-    // Populate and return
     const populatedAppointment = await Appointment.findById(appointment._id)
       .populate('doctorId', 'name specialization qualification consultationFee')
       .populate('hospitalId', 'name address phone')
@@ -124,9 +113,7 @@ exports.createAppointment = async (req, res) => {
   }
 };
 
-// @desc    Get user's appointments
-// @route   GET /api/appointment/user
-// @access  Private (User)
+
 exports.getUserAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({ userId: req.user.id })
@@ -142,9 +129,6 @@ exports.getUserAppointments = async (req, res) => {
   }
 };
 
-// @desc    Get doctor's appointments
-// @route   GET /api/appointment/doctor
-// @access  Private (Doctor)
 exports.getDoctorAppointments = async (req, res) => {
   try {
     const { status } = req.query;
@@ -167,9 +151,7 @@ exports.getDoctorAppointments = async (req, res) => {
   }
 };
 
-// @desc    Approve appointment
-// @route   PATCH /api/appointment/approve/:id
-// @access  Private (Doctor)
+
 exports.approveAppointment = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
@@ -178,7 +160,6 @@ exports.approveAppointment = async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
-    // Check if the doctor owns this appointment
     if (appointment.doctorId.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to approve this appointment' });
     }
@@ -205,9 +186,6 @@ exports.approveAppointment = async (req, res) => {
   }
 };
 
-// @desc    Reject appointment
-// @route   PATCH /api/appointment/reject/:id
-// @access  Private (Doctor)
 exports.rejectAppointment = async (req, res) => {
   try {
     const { rejectionReason } = req.body;
@@ -217,7 +195,6 @@ exports.rejectAppointment = async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
-    // Check if the doctor owns this appointment
     if (appointment.doctorId.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to reject this appointment' });
     }
@@ -245,9 +222,6 @@ exports.rejectAppointment = async (req, res) => {
   }
 };
 
-// @desc    Complete appointment
-// @route   PATCH /api/appointment/complete/:id
-// @access  Private (Doctor)
 exports.completeAppointment = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
@@ -276,9 +250,6 @@ exports.completeAppointment = async (req, res) => {
   }
 };
 
-// @desc    Cancel appointment
-// @route   PATCH /api/appointment/cancel/:id
-// @access  Private (User)
 exports.cancelAppointment = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
@@ -308,9 +279,6 @@ exports.cancelAppointment = async (req, res) => {
   }
 };
 
-// @desc    Get appointment by ID
-// @route   GET /api/appointment/:id
-// @access  Private
 exports.getAppointmentById = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id)

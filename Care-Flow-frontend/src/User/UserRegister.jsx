@@ -32,7 +32,7 @@ const UserRegister = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:8000/api/user/register",
+        "https://careflow-lsf5.onrender.com/api/user/register",
         form
       );
       alert("User Registered Successfully!");

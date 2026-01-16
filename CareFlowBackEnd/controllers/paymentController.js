@@ -92,11 +92,6 @@ exports.createPaymentOrder = async (req, res) => {
   }
 };
 
-/**
- * @desc    Verify payment and update bill
- * @route   POST /api/payment/verify
- * @access  Private (User)
- */
 exports.verifyPayment = async (req, res) => {
   try {
     const userId = req.user.id;

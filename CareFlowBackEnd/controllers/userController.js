@@ -24,7 +24,7 @@ exports.registerUser = async (req, res) => {
       age,
       gender,
       bloodGroup,
-      role: 'user'
+      role:'user'
     });
 
     const token = generateToken(user._id, 'user');
@@ -48,13 +48,13 @@ exports.loginUser = async (req, res) => {
     const user = await User.findOne({ email, role: 'user' });
 
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid email' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid password' });
     }
 
     const token = generateToken(user._id, 'user');

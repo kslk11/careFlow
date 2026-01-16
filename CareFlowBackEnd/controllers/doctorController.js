@@ -19,24 +19,21 @@ exports.registerDoctor = async (req, res) => {
       consultationFee, 
       licenseNumber,
       bio,
-      mode,  // OPTIONAL
+      mode,
       availableDays,
       availableTimeSlots
     } = req.body;
-
-    // Check if doctor already exists
+    
     const existingDoctor = await Doctor.findOne({ email });
     if (existingDoctor) {
       return res.status(400).json({ message: 'Doctor already exists with this email' });
     }
 
-    // Check license number
     const existingLicense = await Doctor.findOne({ licenseNumber });
     if (existingLicense) {
       return res.status(400).json({ message: 'License number already exists' });
     }
 
-    // Check hospital
     const hospital = await Hospital.findById(hospitalId);
     if (!hospital) {
       return res.status(404).json({ message: 'Hospital not found' });
@@ -46,15 +43,12 @@ exports.registerDoctor = async (req, res) => {
       return res.status(400).json({ message: 'Cannot register with unapproved hospital' });
     }
 
-    // Generate Password
     const plainPassword = generatePass();
     console.log("Generated Password:", plainPassword);
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hashSync(plainPassword, salt);
 
-    // Create doctor
     const doctor = await Doctor.create({
       name,
       email,
@@ -73,10 +67,8 @@ exports.registerDoctor = async (req, res) => {
       availableTimeSlots: availableTimeSlots || { start: "", end: "" }
     });
 
-    // Generate token
     const token = generateToken(doctor._id, 'doctor');
 
-    // Email HTML template
     const html = `
       <!DOCTYPE html>
       <html>
@@ -169,6 +161,34 @@ exports.loginDoctor = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+exports.passwordChange = async (req, res) => {
+  try {
+    const id = req.user._id
+    const { currentPassword, newPassword } = req.body
+    const doctor = await Doctor.findById(id)
+    if (!doctor) {
+      return res.status(404).json("User not found")
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, doctor.password)
+    if (!isMatch) {
+      return res.status(401).json("Current password is wrong")
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+    await Doctor.findByIdAndUpdate(
+      id,
+      { password: hashedPassword }
+    )
+
+    res.status(200).json("Password updated successfully")
+
+  } catch (err) {
+    console.log(err)
+    res.status(500).json("Server error")
+  }
+}
 
 exports.getDoctorHospital = async (req, res) => {
   try {

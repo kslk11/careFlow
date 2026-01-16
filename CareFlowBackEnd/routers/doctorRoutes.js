@@ -13,6 +13,7 @@ router.get('/getDoctor',protect, doctorController.getDoctorById);
 router.get('/getAppointments',protect, doctorController.getAppointmentbyparams);
 router.get('/getDoctor/:id',protect, doctorController.getDoctorByIdParams);
 router.get('/mode', protect, doctorController.mode);
+router.put('/change-password',protect,doctorController.passwordChange)
 
 
 module.exports = router;
