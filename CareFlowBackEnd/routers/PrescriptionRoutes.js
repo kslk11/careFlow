@@ -17,7 +17,7 @@ router.put('/update', protect, updatePrescription);
 router.delete('/delete', protect, deletePrescription);
 
 
-router.get('/patient', protect, getPatientPrescriptions);
+router.get('/patient-prescription', protect, getPatientPrescriptions);
 
 
 router.get('/appointment/:appointmentId', protect, getPrescriptionByAppointment);

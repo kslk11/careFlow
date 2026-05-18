@@ -72,7 +72,14 @@ const getPatientPrescriptions = async (req, res) => {
 
     const prescriptions = await Prescription.find({ patientId })
       .sort({ createdAt: -1 })
-      .populate('doctorId', 'name specialization');
+      .populate({
+        path: 'doctorId',
+        populate: {
+          path: 'hospitalId', // Assuming doctor schema has hospitalId field
+          select: 'name address phone email departments' // Select fields you need
+        }
+      })
+      .populate('patientId', 'name email phone');
 
     res.status(200).json(prescriptions);
   } catch (error) {
