@@ -19,7 +19,7 @@ const CombineLogin = () => {
     setMessage("");
 
     try {
-      const res = await axios.post("https://careflow-lsf5.onrender.com/api/Clogin", form);
+      const res = await axios.post("http://localhost:8000/api/Clogin", form);
       
       if (res.data.role === "hospital") {
         localStorage.setItem("hospitalToken", res.data.token);

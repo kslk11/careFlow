@@ -18,7 +18,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("https://careflow-lsf5.onrender.com/api/admin/login", form);
+      const res = await axios.post("http://localhost:8000/api/admin/login", form);
       localStorage.setItem("token", res.data.token);
       setMessage("Login Successful!");
       navigate('/admin')

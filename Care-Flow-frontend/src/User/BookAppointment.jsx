@@ -34,7 +34,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
 
   const fetchDoctorDetails = async () => {
     try {
-      const res = await axios.get(`https://careflow-lsf5.onrender.com/api/doctor/getDoctor/${doctorId}`,config);
+      const res = await axios.get(`http://localhost:8000/api/doctor/getDoctor/${doctorId}`,config);
       setDoctor(res.data);
       console.log(res.data)
     } catch (error) {
@@ -46,7 +46,7 @@ const BookAppointment = ({ doctorId, onClose, onSuccess }) => {
   const fetchUserDetails = async () => {
     try {
       const res = await axios.get(
-        `https://careflow-lsf5.onrender.com/api/user/getUser`, // ✅ Your endpoint is correct
+        `http://localhost:8000/api/user/getUser`, // ✅ Your endpoint is correct
         config
       );
       setUser(res.data);
@@ -86,7 +86,7 @@ const handleSubmit = async (e) => {
 
     // Create order
     const orderResponse = await axios.post(
-      'https://careflow-lsf5.onrender.com/api/appointment-payment/create-order',
+      'http://localhost:8000/api/appointment-payment/create-order',
       {
         doctorId: doctorId,
         hospitalId: appointmentData.hospitalId, // You might need to pass this
@@ -143,7 +143,7 @@ const handleSubmit = async (e) => {
         
         try {
           const verifyResponse = await axios.post(
-            'https://careflow-lsf5.onrender.com/api/appointment-payment/verify',
+            'http://localhost:8000/api/appointment-payment/verify',
             {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
